@@ -1628,9 +1628,13 @@ function Scene(p: SceneProps) {
           </Boundary>
           <group ref={orientRef}>
             <mesh geometry={sphere} material={planet} dispose={null} />
-            <Boundary>
-              <SurfaceProps kind={p.kind} reducedMotion={p.reduced} />
-            </Boundary>
+            {/* Pins, trophy, window and felt discs stick out of the surface; with level
+                badges on the planet they'd cover the badges, so they step aside. */}
+            <group visible={count === 0}>
+              <Boundary>
+                <SurfaceProps kind={p.kind} reducedMotion={p.reduced} />
+              </Boundary>
+            </group>
             {/* Badges, zippers and pocket: one layer that rises out of the fabric when
                 the badges arrive and sinks back in when they go. */}
             <group ref={badgeLayerRef} visible={false}>

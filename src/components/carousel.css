@@ -328,3 +328,9 @@
     transform: none;
   }
 }
+
+/* While a planet is open, the receding planets are scenery: no taps, no focus. */
+.orbit.is-bg,
+.orbit.is-bg .orbit-link {
+  pointer-events: none;
+}

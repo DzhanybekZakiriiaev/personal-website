@@ -917,16 +917,18 @@
   /* Phones: the planet glides to the top, the page flows under it and scrolls.
      The globe size matches the scene's --globe-focus (carousel.css). */
   .section.section--scene {
-    padding: calc(64px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    padding: calc(16px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
       calc(120px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
     overflow-x: clip;
   }
 
   /* The way back stays in reach while the page scrolls. */
   .section.section--scene .back-bubble {
-    position: fixed;
+    /* sticky (not fixed): an ancestor transform would turn fixed into absolute and
+       drop the button onto the title; sticky keeps it in the flow above the title */
+    position: sticky;
     top: max(10px, env(safe-area-inset-top));
-    left: max(12px, env(safe-area-inset-left));
+    left: auto;
     z-index: 20;
   }
 

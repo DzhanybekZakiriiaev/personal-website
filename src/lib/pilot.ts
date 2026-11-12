@@ -20,9 +20,9 @@ import { useSyncExternalStore } from 'react';
  *                    pops out of the badge and circles it until the next target
  *                    (call 'dive' with the badge when the pocket starts closing, then
  *                    'planet' with the globe).
- *           'portal' rect = the anchor inside the opened level page (the element marked
- *                    data-pilot-anchor). The rocket pops out there and flies a small lazy
- *                    loop that stays inside that rect, on top of the portal.
+ *           'portal' rect = the opened badge again. The rocket waits HIDDEN inside the
+ *                    pocket while the level page is open, so it never covers the page;
+ *                    the closing 'dive' then plays in reverse and pops it back out.
  *     options.duration: ms for the change (default PILOT_RETARGET_MS). Orbit modes: the
  *                       flight to the new orbit (pass FLIGHT_MS to match a planet flight).
  *                       'dive': the whole fly, circle and dive.
@@ -41,7 +41,7 @@ import { useSyncExternalStore } from 'react';
  * - The rocket always ignores the pointer and stays small (about a fifth of the planet,
  *   capped by the viewport), so it never blocks a tap.
  * - Reduced motion: no orbit or loops; the rocket rests at the start pose, 'dive' hides it
- *   at once, 'portal' shows it still by the anchor, and every change is instant.
+ *   at once, 'portal' keeps it hidden, and every change is instant.
  */
 
 export type PilotMode = 'pod' | 'planet' | 'parked' | 'dive' | 'portal';
@@ -184,7 +184,9 @@ export function pilotOrbit(rect: PilotRect, viewport?: { width: number; height: 
   const length = Math.min(96, Math.min(vw, vh) * 0.2, Math.max(28, d * 0.22));
   const margin = length * 0.35 + 6;
   const room = Math.min(cx - margin, vw - cx - margin);
-  const rx = Math.max(d * 0.5 + length * 0.2, Math.min(d * 0.64, room));
+  // Hug the planet: just outside its edge, so the orbit never reaches into the
+  // neighbouring planets on the carousel (they sit close on either side).
+  const rx = Math.max(d * 0.5 + length * 0.2, Math.min(d * 0.5 + length * 0.42, room));
   return {
     cx,
     cy: rect.top + rect.height / 2,

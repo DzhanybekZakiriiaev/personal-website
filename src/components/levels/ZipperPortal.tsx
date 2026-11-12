@@ -14,8 +14,8 @@ import type { ZipperPortalProps } from './types';
 
 // A level opens out of the zipper pocket on the planet: warm light pours out,
 // then the level page rises out of it. The page is the inside of an opened jeans
-// pocket (denim, double gold topstitching, copper rivets, a brass zipper along the
-// top with its pull dangling, a leather label) with the level's details pinned
+// pocket (denim, double gold topstitching, copper rivets
+// and a leather label) with the level's details pinned
 // into it as craft pieces. The pieces themselves are styled in zipper.css.
 // Closing sends the pocket back to the planet and the light contracts after it.
 
@@ -37,8 +37,8 @@ const EASE_RISE: [number, number, number, number] = [0.34, 1.45, 0.64, 1];
 
 // Root padding on wide screens, mirrored from zipper.css, so the pocket can start
 // exactly at the planet. On phones (see COMPACT in zipper.css) it is full-screen.
-const PAD_TOP = 36;
-const PAD_BOTTOM = 44;
+const PAD_TOP = 28;
+const PAD_BOTTOM = 40;
 const isCompact = (w: number, h: number) => w <= 600 || h <= 500;
 
 const DEFAULT_ACCENT = '#c8146a';
@@ -301,51 +301,6 @@ function trapTab(event: ReactKeyboardEvent, dialog: HTMLElement, heading: HTMLEl
    Decorative pieces
    --------------------------------------------------------- */
 
-// The chunky brass zipper pull that dangles from the pocket's zipper.
-function ZipperPull() {
-  const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-  const metal = `zp-metal-${id}`;
-  const shine = `zp-shine-${id}`;
-  return (
-    <svg viewBox="0 0 48 96" focusable="false" aria-hidden="true">
-      <defs>
-        <linearGradient id={metal} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#fff1c4" />
-          <stop offset="0.35" stopColor="#e2b44e" />
-          <stop offset="0.72" stopColor="#b3822a" />
-          <stop offset="1" stopColor="#e9c46a" />
-        </linearGradient>
-        <linearGradient id={shine} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff6d6" />
-          <stop offset="1" stopColor="#c99a34" />
-        </linearGradient>
-      </defs>
-      {/* the tab you grab, with a hole punched through it */}
-      <path
-        d="M15 24h18a4 4 0 0 1 4 4v52a13 13 0 0 1-26 0V28a4 4 0 0 1 4-4ZM20 62a4 4 0 0 0-4 4v10a8 8 0 0 0 16 0V66a4 4 0 0 0-4-4Z"
-        fill={`url(#${metal})`}
-        fillRule="evenodd"
-        stroke="#5a3f0c"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path d="M15.5 40v32" fill="none" stroke="#fff8dc" strokeOpacity="0.6" strokeWidth="2.5" strokeLinecap="round" />
-      {/* the slider that rides on the teeth */}
-      <path
-        d="M7 2h34q5 0 4 5l-5 24q-1 5-6 5H14q-5 0-6-5L3 7q-1-5 4-5Z"
-        fill={`url(#${metal})`}
-        stroke="#5a3f0c"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path d="M11 6h26l-3.6 18.5q-.6 3-3.6 3H18.2q-3 0-3.6-3Z" fill={`url(#${shine})`} opacity="0.85" />
-      <rect x="16" y="29" width="16" height="10" rx="5" fill={`url(#${metal})`} stroke="#5a3f0c" strokeWidth="2" />
-      <circle cx="24" cy="15" r="3" fill="#8a6418" />
-      <circle cx="23" cy="14" r="1" fill="#fff6d6" />
-    </svg>
-  );
-}
-
 // Denim, double topstitching, fray and rivets: everything that makes the pocket.
 function PocketCloth() {
   return (
@@ -363,12 +318,6 @@ function PocketCloth() {
       <span className="zp-rivet zp-rivet--tr" aria-hidden="true" />
       <span className="zp-rivet zp-rivet--bl" aria-hidden="true" />
       <span className="zp-rivet zp-rivet--br" aria-hidden="true" />
-      <div className="zp-zipper" aria-hidden="true">
-        <span className="zp-zipper-teeth" />
-        <span className="zp-zipper-pull">
-          <ZipperPull />
-        </span>
-      </div>
     </>
   );
 }
@@ -504,9 +453,6 @@ function ZipperDialog({
             </div>
             <div className="zp-body">{children}</div>
           </div>
-
-          {/* Where the player's rocket loops: kept clear of controls. */}
-          <span className="zp-pilot-anchor" data-pilot-anchor="" aria-hidden="true" />
 
           <button type="button" className="zp-close" onClick={onClose}>
             <svg className="zp-close-shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">

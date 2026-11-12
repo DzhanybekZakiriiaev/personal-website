@@ -485,12 +485,11 @@ export function PlanetLevels({ planet, items, label, hideBubble = false, interac
       if (rect) setPilotTarget({ rect, mode: 'dive' }, { duration: phase === 'opening' ? POCKET_OPEN_MS : POCKET_CLOSE_MS });
       return undefined;
     }
-    // open: the portal is up; aim at its anchor (again once it has settled, and on resize)
+    // open: the rocket waits (hidden) inside the pocket, so it pops back out of the
+    // right spot when the page closes (again once settled, and on resize)
     const aimPortal = () => {
-      const anchor = document.querySelector('[data-pilot-anchor]');
-      if (!anchor) return;
-      const r = anchor.getBoundingClientRect();
-      setPilotTarget({ rect: { left: r.left, top: r.top, width: r.width, height: r.height }, mode: 'portal' }, { instant: true });
+      const rect = badgeRect();
+      if (rect) setPilotTarget({ rect, mode: 'portal' }, { instant: true });
     };
     const first = requestAnimationFrame(aimPortal);
     const settled = window.setTimeout(aimPortal, 500);

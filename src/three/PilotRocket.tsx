@@ -4,7 +4,7 @@
 // Orbit modes ('pod', 'planet', 'parked') circle a planet, bank into the turns and
 // flip the layer's z-index front/back at the far ends of the orbit to fake depth.
 // 'dive' circles a badge and dives into the pocket's light (or pops back out of it);
-// 'portal' loops lazily around an anchor inside the open level page, on top of it.
+// 'portal' keeps the rocket hidden inside the pocket while the level page is open.
 import { Suspense, useEffect, useRef, useState, type RefObject } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -52,11 +52,6 @@ const smooth = (v: number) => {
 const easeInOut = (v: number) => {
   const x = clamp(v, 0, 1);
   return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-};
-/** A little overshoot, for popping out. */
-const backOut = (v: number) => {
-  const x = clamp(v, 0, 1) - 1;
-  return 1 + 2.70158 * x * x * x + 1.70158 * x * x;
 };
 const isOrbitMode = (m: PilotMode) => m === 'pod' || m === 'planet' || m === 'parked';
 
@@ -414,30 +409,20 @@ function PilotScene({ reduced, layer }: { reduced: boolean; layer: RefObject<HTM
     }
   }
 
-  /** 'portal': pop out at the anchor, then a slow loop that stays inside its rect. */
+  /**
+   * 'portal': the rocket waits inside the pocket while the level page is open (it
+   * dived in on the way). It stays hidden so it never sits on the page's content;
+   * keeping the mode lets the closing 'dive' play in reverse, popping it back out.
+   */
   function placePortal(out: Shot, rect: PilotRect, time: number) {
-    const s = sim.current;
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const len = clamp(Math.min(rect.width, rect.height) * 0.45, 24, 56);
-    const ax = Math.max(0, rect.width / 2 - len * 0.5);
-    const ay = Math.max(0, rect.height / 2 - len * 0.3);
-    const age = time - s.modeAt;
     out.layer = 'portal';
-    out.length = len;
-    out.bank = -0.3;
-    if (reduced || s.modeDur <= 0) {
-      out.x = cx + ax * 0.6;
-      out.y = cy;
-      out.show = 1;
-      return;
-    }
-    const a = (age * TAU) / 6;
-    const spread = smooth(age / 0.6); // from the centre out onto the loop
-    out.x = cx + ax * Math.cos(a) * spread;
-    out.y = cy + (ay * Math.sin(a) + 3 * Math.sin(age * 2.3)) * spread;
-    out.show = backOut(age / 0.4);
+    out.x = rect.left + rect.width / 2;
+    out.y = rect.top + rect.height / 2;
+    out.length = clamp(Math.min(rect.width, rect.height) * 0.45, 24, 56);
+    out.show = 0;
+    void time;
   }
+
 
   return (
     <>

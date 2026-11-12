@@ -87,6 +87,19 @@ export default function App() {
   });
   const siteShown = phase === 'site';
 
+  // While the loading or start screen is up, the (invisible) site underneath must
+  // not scroll: otherwise the page shows a second scrollbar next to the start
+  // screen's own.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (siteShown) return undefined;
+    const previous = root.style.overflow;
+    root.style.overflow = 'hidden';
+    return () => {
+      root.style.overflow = previous;
+    };
+  }, [siteShown]);
+
   // One scene: the pod is always there; a section route focuses one of its planets.
   const focusIndex = route === 'pod' ? null : sections.findIndex((s) => s.id === route);
   const focus = focusIndex === null || focusIndex < 0 ? null : focusIndex;

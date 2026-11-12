@@ -10,9 +10,13 @@
   inset: 0;
   z-index: 1000;
   display: grid;
+  /* minmax(0, ...) tracks: no automatic minimum size, so the dialog's max-height
+     always wins and its inside scrolls instead of growing past the screen. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   place-items: center;
   /* Keep in sync with PAD_TOP / PAD_BOTTOM in ZipperPortal.tsx. */
-  padding: 36px 24px 44px;
+  padding: 28px 24px 40px;
   overflow: hidden;
   color: var(--ink);
   font-family: var(--font-body);
@@ -122,8 +126,10 @@
   display: flex;
   flex-direction: column;
   width: min(100%, calc(64ch + 120px));
-  max-height: calc(100vh - 80px);
-  max-height: calc(100dvh - 80px);
+  min-height: 0;
+  /* grows with its content up to about 90% of the screen, then the pieces scroll */
+  max-height: min(90vh, 100%);
+  max-height: min(90dvh, 100%);
   font-size: 1.0625rem;
 }
 
@@ -362,28 +368,76 @@
   overflow-wrap: anywhere;
 }
 
-/* The rocket's loop spot: top corner opposite the Close tag, over decoration only */
-.zp-pilot-anchor {
-  position: absolute;
-  top: 28px;
-  left: 10px;
-  z-index: 0;
-  width: 160px;
-  height: 110px;
-  pointer-events: none;
-}
-
-/* The scrolling stack of pieces */
+/* The scrolling stack of pieces. The side padding leaves room for the pieces'
+   tilts and shadows, so nothing is clipped sideways; the bottom padding lets the
+   last piece clear the rivets and the frayed edge. */
 .zp-scroll {
+  --zp-fade-top: 14px; /* static fades where scroll-driven animations aren't supported */
+  --zp-fade-end: 48px;
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 8px 30px 36px;
+  padding: 14px 30px 72px;
   scrollbar-width: thin;
-  scrollbar-color: rgb(232 166 64 / 0.7) transparent;
+  scrollbar-color: rgb(232 166 64 / 0.75) transparent;
+  /* fade the edges where more pieces are hidden */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--zp-fade-top),
+    #000 calc(100% - var(--zp-fade-end)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--zp-fade-top),
+    #000 calc(100% - var(--zp-fade-end)),
+    transparent 100%
+  );
+}
+
+/* Where supported, the fades follow the scroll position: none at the very top or
+   bottom, and none at all when everything fits. */
+@property --zp-fade-top {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --zp-fade-end {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@supports (animation-timeline: scroll()) {
+  .zp-scroll {
+    --zp-fade-top: 0px;
+    --zp-fade-end: 0px;
+    animation: zp-scroll-fades linear both;
+    animation-timeline: scroll(self);
+  }
+}
+
+@keyframes zp-scroll-fades {
+  0% {
+    --zp-fade-top: 0px;
+    --zp-fade-end: 60px;
+  }
+  6% {
+    --zp-fade-top: 36px;
+  }
+  94% {
+    --zp-fade-end: 60px;
+  }
+  100% {
+    --zp-fade-top: 36px;
+    --zp-fade-end: 0px;
+  }
 }
 
 .zp-scroll:focus {
@@ -474,7 +528,7 @@
 .zp-ribbon {
   grid-area: ribbon;
   position: relative;
-  max-width: 100%;
+  max-width: calc(100% - 12px);
   margin: 0 0 0 12px;
   padding: 7px 28px 8px;
   font-size: 1rem;
@@ -1362,15 +1416,10 @@
   outline-offset: 5px;
 }
 
-/* ---------- Other screens that land in the pocket ---------- */
+/* ---------- Other screens that land in the pocket ----------
+   "Working on it" brings its own pinned felt panel (working.css). */
 .zp-dialog .zp-body .levels-soon {
-  padding: 18px 16px;
-  color: var(--ink);
-  background: #fffaf0;
-  border-radius: 14px;
-  box-shadow:
-    0 4px 0 rgb(0 0 0 / 0.2),
-    0 10px 18px rgb(0 0 0 / 0.28);
+  padding: 4px 0 0;
 }
 
 /* =========================================================
@@ -1746,15 +1795,8 @@
     font-size: 1.15rem;
   }
 
-  .zp-pilot-anchor {
-    top: calc(env(safe-area-inset-top, 0px) + 26px);
-    left: 6px;
-    width: 110px;
-    height: 80px;
-  }
-
   .zp-scroll {
-    padding: 10px 16px calc(32px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 18px calc(64px + env(safe-area-inset-bottom, 0px));
   }
 
   .zp-head {

@@ -137,7 +137,7 @@ function contactLevels(): LevelItem[] {
       title: 'Write to me',
       kicker: 'Letter',
       meta: 'Straight to my inbox',
-      summary: 'Send me a message here and it lands in my email.',
+      summary: 'Send me an email: co-ops, projects or research ideas.',
       icon: 'chat',
       color: '#7a5af0',
       detail: <ContactForm />,

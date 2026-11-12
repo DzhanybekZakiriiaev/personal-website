@@ -47,6 +47,9 @@ export function WorkingOnIt({ title, onBack }: WorkingOnItProps) {
 
   return (
     <div className="woi">
+      {/* masking tape pinning the felt panel into the pocket */}
+      <span className="woi-pin woi-pin--left" aria-hidden="true" />
+      <span className="woi-pin woi-pin--right" aria-hidden="true" />
       <div className="woi-layout">
         <div className="woi-sign-area">
           <div className="woi-hang">

@@ -412,10 +412,5 @@ export const interests = [
   'Making AI assistants trustworthy on company data, so the numbers they give match the source.',
 ];
 
-// Contact form. Paste a form-service endpoint here (e.g. a Formspree form URL such
-// as https://formspree.io/f/xxxxxxx) to deliver messages to your inbox without
-// putting your email address on the site. Empty = the form explains it isn't
-// connected yet.
-export const contactForm = {
-  endpoint: '',
-};
+// Where the Contact planet's "Write to me" letter sends visitors (a mailto link).
+export const contactEmail = 'dzhanybek.zakiriiaev@gmail.com';
