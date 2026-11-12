@@ -1,0 +1,12 @@
+# Cache rules for hosts that read a _headers file (Netlify, Cloudflare Pages).
+# Everything in /assets has a content hash in its name, so it can be cached for a
+# year; the page itself is always revalidated so a new deploy shows up at once.
+# (GitHub Pages ignores this file and uses its own 10-minute cache.)
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache

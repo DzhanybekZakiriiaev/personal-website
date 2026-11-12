@@ -29,7 +29,8 @@ export function Pilot() {
   const shown = target !== null && !held;
   return (
     <div ref={layer} className="pilot-layer" aria-hidden="true" style={{ ...LAYER_STYLE, visibility: shown ? 'visible' : 'hidden' }}>
-      <PilotRocket reduced={reduced} idle={target === null} layer={layer} />
+      {/* Hidden (no target, or held by the start screen's own rocket): draw on demand only. */}
+      <PilotRocket reduced={reduced} idle={!shown} layer={layer} />
     </div>
   );
 }

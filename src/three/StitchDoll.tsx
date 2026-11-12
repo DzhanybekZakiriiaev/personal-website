@@ -475,6 +475,35 @@ function beaniePoints() {
   return pts;
 }
 
+// The knit and felt canvases are the costly part of a craft kit (a pixel pass over
+// each photo), so they are made once per photo and shared: every kit (doll, title
+// rocket, pilot rocket) wraps the same canvases in its own textures, and the
+// loading screen can make them ahead of time (prewarmCraftCanvases).
+const craftCanvases = new Map<string, HTMLCanvasElement>();
+
+function craftCanvas(img: CanvasImageSource, tag: string, make: () => HTMLCanvasElement): HTMLCanvasElement {
+  const src = img instanceof HTMLImageElement && img.complete ? img.currentSrc || img.src : '';
+  if (!src) return make();
+  const key = `${tag}|${src}`;
+  let hit = craftCanvases.get(key);
+  if (!hit) {
+    hit = make();
+    craftCanvases.set(key, hit);
+  }
+  return hit;
+}
+
+/** Makes the shared knit and felt canvases now (from the same photos the kits load). */
+export function prewarmCraftCanvases(knitImg: HTMLImageElement, feltImg: HTMLImageElement) {
+  craftCanvas(knitImg, 'knit', () => knitCanvas(levels(knitImg, 0.8, 1)));
+  craftCanvas(feltImg, 'felt', () => levels(feltImg, 0.86, 1));
+}
+
+/** Starts loading the doll's photos into useLoader's cache, so DollModel need not suspend. */
+export function preloadDollTextures() {
+  useLoader.preload(THREE.ImageLoader, [knitUrl, feltUrl]);
+}
+
 /* =========================================================
    Materials and shared geometry
    ========================================================= */
@@ -484,8 +513,8 @@ function beaniePoints() {
  * the doll and the title-screen rocket. dispose() frees the textures it made.
  */
 export function makeCraftKit(knitImg: CanvasImageSource, feltImg: CanvasImageSource) {
-  const knitC = knitCanvas(levels(knitImg, 0.8, 1));
-  const feltC = levels(feltImg, 0.86, 1);
+  const knitC = craftCanvas(knitImg, 'knit', () => knitCanvas(levels(knitImg, 0.8, 1)));
+  const feltC = craftCanvas(feltImg, 'felt', () => levels(feltImg, 0.86, 1));
 
   const textures: THREE.Texture[] = [];
   const base = (canvas: HTMLCanvasElement | HTMLImageElement, srgb: boolean) => {
@@ -598,6 +627,24 @@ function makeKit(knitImg: CanvasImageSource, feltImg: CanvasImageSource) {
 }
 
 type Kit = ReturnType<typeof makeKit>;
+
+/**
+ * One mesh per doll material (plus the instanced stitch variant), only for
+ * compiling the doll's shader programs ahead of time (see craftWarmup.ts).
+ */
+export function makeDollWarmup(knitImg: CanvasImageSource, feltImg: CanvasImageSource) {
+  const kit = makeKit(knitImg, feltImg);
+  const sphere = new THREE.SphereGeometry(1, 8, 6);
+  const objects: THREE.Object3D[] = [...Object.values(kit.mats), kit.shadow].map((m) => new THREE.Mesh(sphere, m));
+  objects.push(new THREE.InstancedMesh(kit.geo.stitch, kit.mats.thread, 1));
+  return {
+    objects,
+    dispose() {
+      kit.dispose();
+      sphere.dispose();
+    },
+  };
+}
 
 /* =========================================================
    Scene pieces
@@ -1061,19 +1108,41 @@ function CameraFit({ stage }: { stage: boolean }) {
   return null;
 }
 
+// One source of truth for the craft light rig, so craftWarmup.ts compiles shader
+// programs for exactly the lights the craft canvases use.
+const CRAFT_LIGHTS = {
+  sky: ['#fff6ea', '#6a5a7a', 1.15] as [string, string, number],
+  key: { position: [-2.6, 3.6, 3.4] as [number, number, number], intensity: 2.5, color: '#ffdcb4' },
+  rim: { position: [2.2, 1.6, -3.4] as [number, number, number], intensity: 2.4, color: '#9ccbff' },
+  glow: { position: [1.9, 0.35, 2.2] as [number, number, number], intensity: 5, distance: 7, decay: 2, color: '#ffb070' },
+};
+
 /** Warm key front-left, cool rim back-right, warm glow from low right. */
 export function CraftLights() {
   return (
     <>
-      <hemisphereLight args={['#fff6ea', '#6a5a7a', 1.15]} />
+      <hemisphereLight args={CRAFT_LIGHTS.sky} />
       {/* warm key, front left */}
-      <directionalLight position={[-2.6, 3.6, 3.4]} intensity={2.5} color="#ffdcb4" />
+      <directionalLight {...CRAFT_LIGHTS.key} />
       {/* cool rim, back right */}
-      <directionalLight position={[2.2, 1.6, -3.4]} intensity={2.4} color="#9ccbff" />
+      <directionalLight {...CRAFT_LIGHTS.rim} />
       {/* warm glow from low right */}
-      <pointLight position={[1.9, 0.35, 2.2]} intensity={5} distance={7} decay={2} color="#ffb070" />
+      <pointLight {...CRAFT_LIGHTS.glow} />
     </>
   );
+}
+
+/** CraftLights as plain three.js lights (for shader warm-up outside React). */
+export function createCraftLights(): THREE.Light[] {
+  const { sky, key, rim, glow } = CRAFT_LIGHTS;
+  const directional = (o: typeof key) => {
+    const light = new THREE.DirectionalLight(o.color, o.intensity);
+    light.position.set(...o.position);
+    return light;
+  };
+  const point = new THREE.PointLight(glow.color, glow.intensity, glow.distance, glow.decay);
+  point.position.set(...glow.position);
+  return [new THREE.HemisphereLight(...sky), directional(key), directional(rim), point];
 }
 
 // Stable references, so re-renders never rebuild the camera.

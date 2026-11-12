@@ -460,6 +460,29 @@ export function useRocketKit(): RocketKit {
   return kit;
 }
 
+/** Starts loading the rocket's photos into useLoader's cache, so useRocketKit need not suspend. */
+export function preloadRocketTextures() {
+  useLoader.preload(THREE.ImageLoader, [knitUrl, feltUrl, cardboardUrl]);
+}
+
+/**
+ * One mesh per rocket material (plus the instanced puff and stitch variants), only
+ * for compiling the rocket's shader programs ahead of time (see craftWarmup.ts).
+ */
+export function makeRocketWarmup(knitImg: HTMLImageElement, feltImg: HTMLImageElement, cardImg: HTMLImageElement) {
+  const kit = makeRocketKit(knitImg, feltImg, cardImg);
+  const sphere = new THREE.SphereGeometry(1, 8, 6);
+  const objects: THREE.Object3D[] = [...Object.values(kit.mats), ...kit.stars].map((m) => new THREE.Mesh(sphere, m));
+  objects.push(new THREE.InstancedMesh(kit.geo.puff, kit.mats.puff, 1), new THREE.InstancedMesh(kit.geo.stitch, kit.mats.thread, 1));
+  return {
+    objects,
+    dispose() {
+      kit.dispose();
+      sphere.dispose();
+    },
+  };
+}
+
 export type { RocketKit };
 
 /** Animated parts of a RocketModel, filled in by its refs. */

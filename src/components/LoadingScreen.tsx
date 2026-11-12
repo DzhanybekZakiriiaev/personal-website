@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { motion, useIsPresent, useReducedMotion } from 'motion/react';
 import './loading.css';
 
 const LINES = [
@@ -12,32 +12,119 @@ const LINES = [
   'Teaching the doll to dance…',
   'Counting the stitches…',
 ];
+const LINE_MS = 1300; // one status line per loading-pop cycle (loading.css)
 
 const R = 92; // radius of the stitch ring
 const RING = 2 * Math.PI * R;
 
-// Shown until every 3D planet is painted: a felt planet being stitched round its
-// edge, the needle moving with the real progress, and a rotating silly status line.
-export function LoadingScreen({ progress }: { progress: number }) {
-  const reduceMotion = useReducedMotion();
-  const [line, setLine] = useState(0);
-  const pct = Math.round(Math.min(Math.max(progress, 0), 1) * 100);
-  const angle = (pct / 100) * 360 - 90; // start at the top
+// When the boot splash's CSS animations started (performance.now() time), if
+// index.html's splash was on screen before React. null = no splash.
+let bootClock: number | null = null;
+
+/**
+ * Call once before React's first render (main.tsx). Notes the phase of the boot
+ * splash's animations, so <LoadingScreen> picks them up exactly where the static
+ * splash was: the bobbing planet, rolling yarn and needle never jump.
+ */
+export function adoptBootSplash(): void {
+  try {
+    const splash = document.getElementById('boot-splash');
+    if (!splash || typeof splash.getAnimations !== 'function') return;
+    for (const animation of splash.getAnimations({ subtree: true })) {
+      const t = animation.currentTime;
+      if (typeof t === 'number') {
+        bootClock = performance.now() - t;
+        return;
+      }
+    }
+  } catch {
+    // No phase to keep: the loading screen simply starts its animations fresh.
+  }
+}
+
+/** Eases the shown progress towards the real one, so the needle glides instead of jumping. */
+function useSmoothProgress(target: number, instant: boolean): number {
+  const [shown, setShown] = useState(target);
+  const shownRef = useRef(target);
 
   useEffect(() => {
-    if (reduceMotion) return;
-    const id = window.setInterval(() => setLine((n) => (n + 1) % LINES.length), 1300);
-    return () => window.clearInterval(id);
+    if (instant || target >= 1 || target < shownRef.current) {
+      shownRef.current = target;
+      setShown(target);
+      return undefined;
+    }
+    let frame = 0;
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
+      last = now;
+      const gap = target - shownRef.current;
+      const next = gap < 0.002 ? target : shownRef.current + Math.min(gap, Math.max(gap * (1 - Math.exp(-dt * 7)), dt * 0.12));
+      shownRef.current = next;
+      setShown(next);
+      if (next < target) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [target, instant]);
+
+  return shown;
+}
+
+// Shown until everything is preloaded: a felt planet being stitched round its edge,
+// the needle moving with the real progress, and a rotating silly status line.
+export function LoadingScreen({ progress }: { progress: number }) {
+  const reduceMotion = useReducedMotion();
+  const isPresent = useIsPresent();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [line, setLine] = useState(0);
+  const target = Math.min(Math.max(progress, 0), 1);
+  // While fading out the job is done: show it finished.
+  const smooth = useSmoothProgress(isPresent ? target : 1, Boolean(reduceMotion) || !isPresent);
+  const pct = Math.round(smooth * 100);
+  const angle = smooth * 360 - 90; // start at the top
+
+  // Take over from the boot splash (React has already replaced #root's content) and
+  // continue its CSS animations from the same phase.
+  useLayoutEffect(() => {
+    document.getElementById('boot-splash')?.remove();
+    document.getElementById('boot-backdrop')?.remove();
+    const root = rootRef.current;
+    if (bootClock === null || !root || typeof root.getAnimations !== 'function') return;
+    const t = performance.now() - bootClock;
+    for (const animation of root.getAnimations({ subtree: true })) {
+      if ('animationName' in animation) animation.currentTime = t; // CSS animations only
+    }
+  }, []);
+
+  // Status line: changes at the start of each loading-pop cycle, while it is invisible.
+  useEffect(() => {
+    if (reduceMotion) return undefined;
+    const origin = bootClock ?? performance.now();
+    const base = Math.floor((performance.now() - origin) / LINE_MS);
+    let id = 0;
+    const schedule = () => {
+      const elapsed = performance.now() - origin;
+      id = window.setTimeout(tick, LINE_MS - (elapsed % LINE_MS) + 4);
+    };
+    const tick = () => {
+      const k = Math.floor((performance.now() - origin) / LINE_MS) - base;
+      setLine(((k % LINES.length) + LINES.length) % LINES.length);
+      schedule();
+    };
+    schedule();
+    return () => window.clearTimeout(id);
   }, [reduceMotion]);
 
   return (
     <motion.div
+      ref={rootRef}
       className="loading"
       role="progressbar"
       aria-label="Loading the planets"
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-valuenow={pct}
+      aria-valuenow={Math.round(target * 100)}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.08 }}
       transition={{ duration: 0.55, ease: 'easeInOut' }}
@@ -59,7 +146,7 @@ export function LoadingScreen({ progress }: { progress: number }) {
                   stroke="#fff"
                   strokeWidth="10"
                   strokeDasharray={RING}
-                  strokeDashoffset={RING * (1 - pct / 100)}
+                  strokeDashoffset={RING * (1 - smooth)}
                   transform="rotate(-90 120 120)"
                 />
               </mask>

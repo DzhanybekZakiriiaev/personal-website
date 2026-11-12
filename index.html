@@ -18,7 +18,76 @@
     <title>Johnny Zakiriiaev</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Boot splash: the loading screen as plain HTML, styled by loading.css from the
+           render-blocking stylesheet, so it paints before the JavaScript has arrived.
+           Same markup as <LoadingScreen progress={0} />; React replaces it on its first
+           render, and LoadingScreen continues its animations from the same phase. -->
+      <div id="boot-backdrop" class="backdrop" aria-hidden="true" style="visibility: hidden"></div>
+      <div id="boot-splash" class="loading" role="progressbar" aria-label="Loading the planets" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="visibility: hidden">
+        <div class="loading-stage" aria-hidden="true">
+          <span class="loading-yarn"></span>
+          <div class="loading-planet">
+            <svg viewBox="0 0 240 240" class="loading-art">
+              <defs>
+                <clipPath id="loading-clip"><circle cx="120" cy="120" r="86"></circle></clipPath>
+                <mask id="loading-sewn">
+                  <circle cx="120" cy="120" r="92" fill="none" stroke="#fff" stroke-width="10" stroke-dasharray="578.0530482605219" stroke-dashoffset="578.0530482605219" transform="rotate(-90 120 120)"></circle>
+                </mask>
+                <!-- Same as SvgDefs' #g-shade, which only exists once React has rendered. -->
+                <radialGradient id="g-shade" cx="38%" cy="32%" r="78%">
+                  <stop offset="0.55" stop-color="#000000" stop-opacity="0"></stop>
+                  <stop offset="1" stop-color="#000000" stop-opacity="0.55"></stop>
+                </radialGradient>
+              </defs>
+              <g clip-path="url(#loading-clip)">
+                <circle cx="120" cy="120" r="86" class="loading-ocean"></circle>
+                <path class="loading-land" d="M58 92c14-22 46-26 60-10 10 12 0 30-16 34-12 3-14 22-28 24-16 2-24-16-22-30 1-8-2-12 6-18z"></path>
+                <path class="loading-land loading-land--2" d="M132 60c20-10 46-2 54 16 6 14-6 26-22 26-12 0-18 12-30 8-12-4-16-20-12-32 2-8 2-14 10-18z"></path>
+                <path class="loading-land loading-land--3" d="M128 150c14-8 34-2 38 12 4 16-10 26-24 24-12-2-22-10-22-22 0-6 2-10 8-14z"></path>
+                <circle cx="120" cy="120" r="86" class="loading-shade"></circle>
+              </g>
+              <circle cx="120" cy="120" r="92" class="loading-guide"></circle>
+              <circle cx="120" cy="120" r="92" class="loading-stitch" mask="url(#loading-sewn)"></circle>
+              <g transform="translate(120.00 28.00) rotate(0.0)">
+                <path class="loading-thread" d="M0 0c-8 10-4 18-16 26"></path>
+                <g class="loading-needle">
+                  <path d="M-3 -26 L3 -26 L1.2 18 L0 26 L-1.2 18 Z"></path>
+                  <ellipse cx="0" cy="-19" rx="1.3" ry="4" class="loading-needle-eye"></ellipse>
+                </g>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="loading-tag">
+          <p class="loading-title">Stitching your planets</p>
+          <p class="loading-line" aria-hidden="true"><span class="boot-line-motion">Knitting the oceans…</span><span class="boot-line-still">Almost there…</span></p>
+          <p class="loading-pct" aria-hidden="true">0%</p>
+        </div>
+      </div>
+    </div>
+    <script>
+      // Show the boot splash only with JavaScript on (otherwise the <noscript> text
+      // below is the page), and hold its text back until the web fonts are in (max
+      // 2.5 s), so it never flashes a fallback font.
+      (function () {
+        var splash = document.getElementById('boot-splash');
+        if (!splash) return;
+        splash.classList.add('boot-js');
+        var backdrop = document.getElementById('boot-backdrop');
+        if (backdrop) backdrop.classList.add('boot-js');
+        var show = function () {
+          splash.classList.add('boot-fonts');
+        };
+        if (!document.fonts || !document.fonts.load) return show();
+        Promise.race([
+          Promise.all([document.fonts.load('700 1em "Fredoka"'), document.fonts.load('600 1em "Atkinson Hyperlegible Next"')]),
+          new Promise(function (resolve) {
+            setTimeout(resolve, 2500);
+          }),
+        ]).then(show, show);
+      })();
+    </script>
     <noscript>
       <p style="font-family: sans-serif; padding: 1rem">
         Johnny Zakiriiaev: applied AI and data engineering.

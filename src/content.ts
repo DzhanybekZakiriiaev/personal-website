@@ -7,7 +7,7 @@
 import stormhacksLogo from './assets/logos/stormhacks.webp';
 import ignitionLogo from './assets/logos/ignitionhacks.png';
 import cuhackingLogo from './assets/logos/cuhacking.svg';
-import hackcanadaLogo from './assets/logos/hackcanada.png';
+import hackcanadaLogo from './assets/logos/hackcanada.webp';
 import sihLogo from './assets/logos/sih.svg';
 
 export type IconName =

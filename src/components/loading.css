@@ -202,3 +202,30 @@
     opacity: 0;
   }
 }
+
+/* Boot splash (index.html): this same screen as plain HTML, shown before the
+   JavaScript arrives. Visible only with JavaScript on (the inline script adds
+   .boot-js); its text waits for the web fonts (.boot-fonts) so it never flashes a
+   fallback face. React replaces it with <LoadingScreen> on its first render. */
+#boot-splash.boot-js,
+#boot-backdrop.boot-js {
+  visibility: visible !important;
+}
+
+#boot-splash:not(.boot-fonts) .loading-tag p {
+  color: transparent;
+}
+
+.boot-line-still {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-line-motion {
+    display: none;
+  }
+
+  .boot-line-still {
+    display: inline;
+  }
+}

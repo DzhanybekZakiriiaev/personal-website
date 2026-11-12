@@ -9,45 +9,23 @@ import { SectionPage } from './components/SectionPage';
 import { LoadingScreen } from './components/LoadingScreen';
 import { TitleScreen } from './components/TitleScreen';
 import { Pilot } from './components/Pilot';
-import { levelsFor } from './pages/levels';
-import { preloadGlobes } from './three/Globe3D';
-import type { GlobeBadge, PreloadRequest } from './three/spec';
+import { preloadEverything } from './lib/preload';
 
 const START_INDEX = 1; // the middle planet (Projects) starts selected
 const MIN_LOADING_MS = 1400; // long enough to enjoy the loading screen, short enough not to annoy
 
-// Every planet with its level badges, so nothing is painted after the loading screen
-// goes away. (The pod's planets are the same 'hero' planets, shown smaller.)
-function allPlanets(): PreloadRequest[] {
-  return sections.map((s) => ({
-    kind: s.planet,
-    detail: 'hero' as const,
-    badges: levelsFor(s.id).map<GlobeBadge>((it) => ({
-      id: it.id,
-      icon: it.icon,
-      color: it.color,
-      style: it.badgeStyle ?? 'sticker',
-      title: it.title,
-      logo: it.logo,
-    })),
-  }));
-}
-
+// The mandatory loading screen waits for everything (lib/preload.ts): fonts, every
+// texture and logo, the 3D modules, every planet's maps and badges (painted in
+// workers), the title and pilot scenes and their shaders. It never rejects.
 function usePreload(): { ready: boolean; progress: number } {
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    const planets = preloadGlobes(allPlanets(), (done, total) => {
+    const work = preloadEverything((done, total) => {
       if (!cancelled && total > 0) setProgress(done / total);
     });
-    const work = Promise.allSettled([
-      planets,
-      document.fonts ? document.fonts.ready : Promise.resolve(),
-      import('./three/StitchDoll'),
-      import('./three/RocketIntro'),
-    ]);
     const minimum = new Promise((resolve) => window.setTimeout(resolve, MIN_LOADING_MS));
     void Promise.all([work, minimum]).then(() => {
       if (cancelled) return;
