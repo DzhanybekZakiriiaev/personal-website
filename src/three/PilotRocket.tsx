@@ -427,7 +427,8 @@ function PilotScene({ reduced, layer }: { reduced: boolean; layer: RefObject<HTM
   return (
     <>
       <group ref={group} visible={false}>
-        <RocketModel kit={kit} dollPose="cockpit" reduced={reduced} parts={parts} />
+        {/* Calm idle while following the player: the wave is only for the start screen. */}
+        <RocketModel kit={kit} dollPose="cruise" reduced={reduced} parts={parts} />
       </group>
       <instancedMesh ref={puffMesh} args={[kit.geo.puff, kit.mats.puff, PUFFS]} frustumCulled={false} />
     </>

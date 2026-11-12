@@ -1,8 +1,9 @@
 // In-portal "under construction" screen for projects that are not deployed and
 // whose repo is not public yet: felt caution tape, a hanging cardboard sign,
-// felt traffic cones and a knitted doll dancing on a little felt stage.
+// felt traffic cones and Sackboy dancing on a little felt stage.
 import { useEffect, useRef } from 'react';
 import { StitchDoll } from '../../three/StitchDoll';
+import { SackboyModel } from '../../three/Sackboy';
 import type { WorkingOnItProps } from './types';
 import './working.css';
 
@@ -67,7 +68,7 @@ export function WorkingOnIt({ title, onBack }: WorkingOnItProps) {
           <span className="woi-floor" />
           <span className="woi-tape" />
           <div className="woi-doll">
-            <StitchDoll pose="dance" />
+            <StitchDoll pose="dance" figure={SackboyModel} />
           </div>
           <FeltCone className="woi-cone woi-cone--left" />
           <FeltCone className="woi-cone woi-cone--right" />

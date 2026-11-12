@@ -199,18 +199,22 @@ async function run(): Promise<void> {
   const globes = step(W.globes, 28000, (part) => preloadGlobes(requests, (d, t) => part(t > 0 ? d / t : 1)));
 
   // 6. Lazily imported 3D modules, then the craft scenes (title rocket, pilot, doll).
-  const modules = Promise.allSettled([import('../three/StitchDoll'), import('../three/RocketIntro'), import('../three/craftWarmup')]);
+  const craftModules = () =>
+    Promise.all([import('../three/StitchDoll'), import('../three/RocketIntro'), import('../three/craftWarmup'), import('../three/Sackboy')]);
+  const modules = Promise.allSettled([craftModules()]);
   const modulesDone = step(W.modules, 10000, () => modules);
   const craft = step(W.craft, 12000, async (part) => {
-    const [doll, rocket, warmup] = await Promise.all([import('../three/StitchDoll'), import('../three/RocketIntro'), import('../three/craftWarmup')]);
+    const [doll, rocket, warmup, sackboy] = await craftModules();
     doll.preloadDollTextures();
     rocket.preloadRocketTextures();
+    // The rocket's pilot model (fetched and rigged in the background meanwhile).
+    const pilot = sackboy.loadSackboy().catch(() => null);
     const [knit, felt, cardboard] = await Promise.all([loadImage(knitUrl), loadImage(feltUrl), loadImage(cardboardUrl)]);
     await nextFrame();
     doll.prewarmCraftCanvases(knit, felt);
     part(0.4);
     await nextFrame();
-    await warmup.warmCraftShaders({ knit, felt, cardboard });
+    await warmup.warmCraftShaders({ knit, felt, cardboard, sackboy: await pilot });
   });
 
   await Promise.all([fonts, images, maps, badgesDone, globes, modulesDone, craft]);

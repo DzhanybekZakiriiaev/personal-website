@@ -1,7 +1,7 @@
-// Title-screen flight: the knitted doll rides an original felt-and-cardboard
-// rocket through felt stars and paper clouds, waving. When `launching` turns
-// on, it grabs the joystick, gives a thumbs-up and nods while the knitted flame
-// flares. When `exiting` turns on, the rocket swoops up, loops round with a
+// Title-screen flight: Sackboy rides an original felt-and-cardboard rocket
+// through felt stars and paper clouds, hands on the joystick, glancing out now
+// and then. When `launching` turns on, he pulls the stick, leans back and nods
+// while the knitted flame flares. When `exiting` turns on, the rocket swoops up, loops round with a
 // barrel roll and dives into the scene, shrinking with distance, until it sits
 // exactly on the pilot's start pose (src/lib/pilot.ts); then pilotTakeOver()
 // hands it to the <Pilot /> layer and onFlightEnd fires.
@@ -9,7 +9,8 @@
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { CraftLights, DollModel, QuietBoundary, canUseWebGL, makeCraftKit, type DollPose } from './StitchDoll';
+import { CraftLights, QuietBoundary, canUseWebGL, makeCraftKit, type DollPose } from './StitchDoll';
+import { SackboyModel } from './Sackboy';
 import { getPilotState, pilotStartPose, pilotTakeOver, type PilotPose } from '../lib/pilot';
 import knitUrl from '../assets/textures/knit.jpg';
 import feltUrl from '../assets/textures/felt.jpg';
@@ -24,7 +25,7 @@ export interface RocketFrame {
 }
 
 export interface RocketIntroProps {
-  /** "Takes control": joystick, thumbs-up, nods, flame flares and rumbles. */
+  /** "Takes control": pulls the joystick, leans back, nods, flame flares and rumbles. */
   launching: boolean;
   /** Fly down onto the pilot's start pose (EXIT_TIME), take over, then call onFlightEnd. */
   exiting?: boolean;
@@ -47,8 +48,12 @@ const ROCKET_BASE = { x: 0.35, y: -0.35 };
 const PITCH = 0.18;
 const COCKPIT_X = 0.1;
 const COCKPIT_A = 0.43; // cockpit ring radius
-const DOLL_Y = 0.23;
-const DOLL_SCALE = 0.75;
+const PILOT_Y = 0.17; // the pilot's feet, inside the hull
+const PILOT_SCALE = 0.75;
+/** Joystick, in the pilot's own space (he faces +z): an arm's length in front of him, knob at chest height. */
+const STICK_BASE: [number, number, number] = [0, 0.44, 0.48];
+const LEVER = 0.32;
+const KNOB_R = 0.075;
 /** Seconds from the exit starting to the rocket landing on the pilot's start pose. */
 export const EXIT_TIME = 1.4;
 /** Nose to flame tip in model units (the pilot scales the model by length / ROCKET_LEN). */
@@ -497,7 +502,7 @@ export function makeRocketParts(): RocketParts {
   return { cones: [], stick: null, nozzle: null };
 }
 
-/** Rocket body, the doll in its cockpit with the joystick, and the knitted flame. Origin mid-hull, nose along +x. */
+/** Rocket body, Sackboy in its cockpit with the joystick, and the knitted flame. Origin mid-hull, nose along +x. */
 export function RocketModel({
   kit,
   dollPose,
@@ -509,30 +514,37 @@ export function RocketModel({
   reduced: boolean;
   parts: RefObject<RocketParts>;
 }) {
+  const knob = useRef<THREE.Mesh>(null);
   return (
     <group>
       <RocketBody kit={kit} />
 
-      {/* The doll in the cockpit, with its little joystick */}
-      <group position={[COCKPIT_X, DOLL_Y, 0]} rotation={[0, 0, -0.08]} scale={DOLL_SCALE}>
-        <Suspense fallback={null}>
-          <DollModel pose={dollPose} stage={false} shadow={false} reduced={reduced} />
-        </Suspense>
-        <group
-          ref={(o) => {
-            parts.current.stick = o;
-          }}
-          position={[-0.48, 0.42, 0.39]}
-        >
-          <mesh material={kit.mats.stick} scale={[1, 0.5, 1]}>
-            <sphereGeometry args={[0.07, 14, 10]} />
-          </mesh>
-          <mesh material={kit.mats.stick} position={[0, 0.08, 0]}>
-            <cylinderGeometry args={[0.018, 0.018, 0.16, 10]} />
-          </mesh>
-          <mesh material={kit.mats.ball} position={[0, 0.16, 0]}>
-            <sphereGeometry args={[0.055, 16, 12]} />
-          </mesh>
+      {/* Sackboy seated in the cockpit (chest up out of the hull), facing the nose,
+          both mitts on the joystick in front of him */}
+      <group position={[COCKPIT_X, PILOT_Y, 0]} rotation={[0, 0, -0.08]} scale={PILOT_SCALE}>
+        <group rotation={[0, Math.PI / 2, 0]}>
+          {/* If the model cannot load, the rocket still flies, just without its pilot. */}
+          <QuietBoundary>
+            <Suspense fallback={null}>
+              <SackboyModel pose={dollPose} shadow={false} reduced={reduced} grip={knob} gripHalfWidth={KNOB_R + 0.055} />
+            </Suspense>
+          </QuietBoundary>
+          <group
+            ref={(o) => {
+              parts.current.stick = o;
+            }}
+            position={STICK_BASE}
+          >
+            <mesh material={kit.mats.stick} scale={[1, 0.5, 1]}>
+              <sphereGeometry args={[0.08, 14, 10]} />
+            </mesh>
+            <mesh material={kit.mats.stick} position={[0, LEVER / 2, 0]}>
+              <cylinderGeometry args={[0.022, 0.022, LEVER, 10]} />
+            </mesh>
+            <mesh ref={knob} material={kit.mats.ball} position={[0, LEVER, 0]}>
+              <sphereGeometry args={[KNOB_R, 18, 14]} />
+            </mesh>
+          </group>
         </group>
       </group>
 
@@ -840,7 +852,7 @@ function Flight({ launching, exiting, onFlightEnd, reduced, rig }: FlightProps) 
 
     const P = parts.current;
     updateFlame(P, t, flame, moving);
-    // Joystick leans back as the doll pulls it.
+    // Joystick leans back towards the pilot as he pulls it (his mitts follow the knob).
     if (P.stick) P.stick.rotation.x = lt >= 0 ? -0.25 * smooth((lt - 0.3) / 0.2) : 0;
 
     // Cotton-ball puffs, left behind in world space (a dotted trail on the exit).

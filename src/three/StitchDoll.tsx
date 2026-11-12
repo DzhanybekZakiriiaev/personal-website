@@ -2,8 +2,9 @@
 // beanie, mustard scarf) on a round felt stage. Built only from three.js
 // primitives and procedural textures. Poses: 'dance' (looping hip-hop routine),
 // 'wave' (friendly avatar), 'idle' (breathing only). Reduced motion forces idle.
-// DollModel is the same doll as a plain R3F group (wrap it in <Suspense>), with
-// two extra poses for the title-screen rocket: 'cockpit' and 'control'.
+// DollModel is the same doll as a plain R3F group (wrap it in <Suspense>). The
+// rocket poses ('cockpit', 'control', 'cruise') are flown by Sackboy.tsx, which
+// shares this file's pose mixer; StitchDoll can also show another figure (figure).
 import {
   Component,
   Suspense,
@@ -12,6 +13,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ComponentType,
   type ReactNode,
 } from 'react';
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
@@ -23,9 +25,9 @@ import feltUrl from '../assets/textures/felt.jpg';
 export type StitchDollPose = 'dance' | 'wave' | 'idle';
 
 /**
- * DollModel poses: the StitchDoll ones plus 'cockpit' (sitting in the rocket,
- * one arm on the rim, waving every few seconds) and 'control' (grabs the
- * joystick with the left mitten, thumbs-up with the right, two nods).
+ * All poses: the StitchDoll ones plus the rocket's: 'cockpit' (idle at the stick:
+ * sways, looks around, glances at the viewer), 'control' (pulls the stick, leans
+ * back, nods twice) and 'cruise' (calm idle).
  */
 export type DollPose = StitchDollPose | 'cockpit' | 'control' | 'cruise';
 
@@ -39,11 +41,23 @@ export interface DollModelProps {
   reduced?: boolean;
 }
 
+/** Props of another figure that can stand on the doll's stage (e.g. SackboyModel in Sackboy.tsx). */
+export interface StageFigureProps {
+  pose: DollPose;
+  reduced?: boolean;
+  /** Soft blob shadow under the feet (default true). */
+  shadow?: boolean;
+  /** Height of the shadow above y = 0 (it sits on the stage disc when there is one). */
+  shadowY?: number;
+}
+
 export interface StitchDollProps {
   /** 'dance' = looping routine, 'wave' = waves now and then, 'idle' = breathing only. */
   pose?: StitchDollPose;
   /** Show the round felt stage disc under the doll (default true). */
   stage?: boolean;
+  /** Show this figure instead of the knitted doll (same canvas, camera, lights and stage). */
+  figure?: ComponentType<StageFigureProps>;
 }
 
 /* =========================================================
@@ -107,6 +121,8 @@ const POSE_KEYS = [
   'lOut', 'lFwd', 'lBend', 'lLift', 'rOut', 'rFwd', 'rBend', 'rLift',
   'lWrist', 'rWrist', 'lThumb', 'rThumb',
   'lFoot', 'rFoot',
+  // 1 = that hand lets go of whatever it holds (the pilot's joystick) and follows the pose.
+  'lFree', 'rFree',
 ] as const;
 type PoseKey = (typeof POSE_KEYS)[number];
 type Pose = Record<PoseKey, number>;
@@ -294,52 +310,147 @@ function wavePose(p: Pose, t: number) {
   }
 }
 
-/** Sitting in the rocket, both arms resting on the hull (what 'cockpit' looks like between waves). */
+/*
+ * The rocket poses. The pilot (Sackboy.tsx) sits facing the nose with both mitts
+ * on the joystick (IK holds them there), so these only move the body and head;
+ * the arm values just reach forward, for a figure without a stick to hold.
+ * The viewer is on his left (-x) while he faces the nose, so headY < 0 looks out.
+ */
+function pilotRest(p: Pose) {
+  restPose(p);
+  p.lOut = p.rOut = 0.35;
+  p.lFwd = p.rFwd = 1.2;
+  p.lBend = p.rBend = 0.5;
+  p.lean = -0.05; // settled back in the seat
+}
+
+/** Cruising: a calm idle, small sway and breathing, eyes on the way ahead. */
 function cruisePose(p: Pose, t: number) {
-  restPose(p);
-  p.lOut = p.rOut = 1.2;
-  p.lFwd = p.rFwd = 0.15;
-  p.lBend = p.rBend = 0.35;
-  p.headX = 0.03 * Math.sin((TAU * t) / 2.4);
+  pilotRest(p);
+  p.lean += 0.02 * Math.sin((TAU * t) / 4.6);
+  p.hipZ = 0.03 * Math.sin((TAU * t) / 5.7);
+  p.headY = 0.12 * Math.sin((TAU * t) / 5.1);
+  p.headX = 0.03 * Math.sin((TAU * t) / 2.6);
 }
 
-/** Sitting in the rocket: left arm resting on the hull, right mitten waves every few seconds. */
+/**
+ * Waiting to launch (and the pilot's idle around the site): sways and looks
+ * around; every few seconds he turns to the viewer, lets go of the stick with
+ * the near (left) mitt and waves, then takes the stick again.
+ */
 function cockpitPose(p: Pose, t: number) {
-  restPose(p);
-  p.lOut = 1.2;
-  p.lFwd = 0.15;
-  p.lBend = 0.35;
-  const cycle = 3.8;
+  cruisePose(p, t);
+  const cycle = 6.5;
   const c = t - Math.floor(t / cycle) * cycle;
-  const w = smooth((c - 0.3) / 0.4) * (1 - smooth((c - 2.6) / 0.4));
-  const wag = Math.sin(TAU * 2 * Math.max(0, c - 0.3));
-  p.rOut = lerp(1.2, 2.35, w);
-  p.rFwd = lerp(0.15, 0.3, w);
-  p.rBend = lerp(0.35, 0.12, w);
-  p.rLift = (0.35 + 0.35 * wag) * w;
-  p.headZ = 0.12 * w;
-  p.headX = -0.04 * w + 0.03 * Math.sin((TAU * t) / 2.4);
-  p.hipZ = -0.03 * wag * w;
+  // The mitt lets go as he starts turning and is back on the stick as he turns away.
+  const turn = smooth((c - 1.6) / 0.45) * (1 - smooth((c - 4.6) / 0.45));
+  const wave = smooth((c - 1.5) / 0.4) * (1 - smooth((c - 4.65) / 0.4));
+  const wag = Math.sin(TAU * 2.2 * Math.max(0, c - 1.9));
+  // Turn the shoulders, then the head, to face the viewer; lean and tilt away
+  // from the waving arm so the mitt stays clear of the big head.
+  p.twist = lerp(p.twist, -1.1, turn);
+  p.headY = lerp(p.headY, -0.4, turn);
+  p.headZ = -0.15 * turn;
+  p.headX -= 0.05 * turn;
+  p.hipZ = lerp(p.hipZ, -0.1, turn);
+  // Near mitt off the stick: elbow out, forearm up beside the head, wagging.
+  p.lFree = wave;
+  p.lOut = lerp(p.lOut, 2.1, wave);
+  p.lFwd = lerp(p.lFwd, 0.1, wave);
+  p.lBend = lerp(p.lBend, 0.1, wave);
+  p.lLift = (0.55 + 0.3 * wag) * wave;
+  p.squash += 0.015 * wag * wave;
 }
 
-/** "Takes control": grab the joystick, thumbs-up, two nods. tc = seconds since it started. */
+/** "Takes control": pulls the stick back, leans into the seat, looks out and nods twice. tc = seconds since it started. */
 function controlPose(p: Pose, tc: number) {
-  restPose(p);
-  const grab = smooth(tc / 0.25);
-  p.lOut = lerp(1.2, 0.15, grab);
-  p.lFwd = lerp(0.15, 1.2, grab);
-  p.lBend = lerp(0.35, 0.5, grab);
-  p.lean = 0.05 * grab;
-  const up = smooth((tc - 0.1) / 0.3);
-  p.rOut = lerp(1.2, 0.3, up);
-  p.rFwd = lerp(0.15, 0.9, up);
-  p.rBend = lerp(0.35, 1.9, up);
-  p.rWrist = up;
-  p.rThumb = 0.7 * up;
-  const nod = clamp((tc - 0.15) / 0.7, 0, 1);
+  pilotRest(p);
+  const pull = smooth(tc / 0.3);
+  p.lean = lerp(-0.05, -0.15, pull);
+  const look = smooth((tc - 0.05) / 0.25);
+  p.headY = -0.7 * look;
+  p.headZ = 0.08 * look;
+  p.twist = -0.06 * look;
+  const nod = clamp((tc - 0.25) / 0.7, 0, 1);
   const n = Math.sin(TAU * nod) ** 2;
   p.headX = 0.18 * n;
   p.squash = 0.04 * n;
+}
+
+/* =========================================================
+   Pose mixer: fades between modes and adds breathing. Shared
+   with the Sackboy figure (Sackboy.tsx), so both move alike.
+   ========================================================= */
+export type { Pose as DollPoseValues };
+export { makePose as makeDollPoseValues };
+
+export interface PoseMixer {
+  /** Seconds since the mixer started. */
+  t: number;
+  weights: Record<DollPose, number>;
+  target: DollPose;
+  /** When the current target was set (control's routine starts from here). */
+  since: number;
+}
+
+export function makePoseMixer(pose: DollPose): PoseMixer {
+  const weights = { dance: 0, wave: 0, idle: 0, cockpit: 0, control: 0, cruise: 0 } as Record<DollPose, number>;
+  weights[pose] = 1;
+  return { t: 0, weights, target: pose, since: 0 };
+}
+
+const MIX_TMP = makePose();
+
+/** Advances the mixer by dt towards `target` and writes the blended pose into `out`. */
+export function stepPoseMixer(m: PoseMixer, target: DollPose, dt: number, out: Pose) {
+  m.t += dt;
+  const t = m.t;
+  if (target !== m.target) {
+    m.target = target;
+    m.since = t;
+  }
+
+  // Fade between modes so switching never pops ('control' snaps in quickly).
+  const rate = 1 - Math.exp(-dt * (target === 'control' ? 12 : 3));
+  let total = 0;
+  for (const mode of MODES) {
+    m.weights[mode] += ((mode === target ? 1 : 0) - m.weights[mode]) * rate;
+    total += m.weights[mode];
+  }
+  const w = m.weights;
+  const tmp = MIX_TMP;
+  zeroPose(out);
+  if (w.dance > 0.001) {
+    dancePose(tmp, t);
+    addPose(out, tmp, w.dance / total);
+  }
+  if (w.wave > 0.001) {
+    wavePose(tmp, t);
+    addPose(out, tmp, w.wave / total);
+  }
+  if (w.idle > 0.001) {
+    restPose(tmp);
+    addPose(out, tmp, w.idle / total);
+  }
+  if (w.cockpit > 0.001) {
+    cockpitPose(tmp, t);
+    addPose(out, tmp, w.cockpit / total);
+  }
+  if (w.control > 0.001) {
+    controlPose(tmp, target === 'control' ? t - m.since : 2);
+    addPose(out, tmp, w.control / total);
+  }
+  if (w.cruise > 0.001) {
+    cruisePose(tmp, t);
+    addPose(out, tmp, w.cruise / total);
+  }
+
+  // Slow breathing under everything.
+  const breath = Math.sin((TAU * t) / 3.8);
+  out.squash -= 0.022 * breath;
+  out.lOut += 0.03 * breath;
+  out.rOut += 0.03 * breath;
+  out.headX -= 0.02 * breath;
 }
 
 /* =========================================================
@@ -438,7 +549,7 @@ function stripeCanvas() {
 }
 
 /** Soft round blob for the contact shadow (used as an alpha map). */
-function blobCanvas() {
+export function blobCanvas() {
   const c = makeCanvas(128, 128);
   const ctx = c.getContext('2d');
   if (!ctx) return c;
@@ -688,6 +799,14 @@ function StitchRing({ radius, y, count, kit }: { radius: number; y: number; coun
   return <instancedMesh ref={ref} args={[kit.geo.stitch, kit.mats.thread, count]} />;
 }
 
+/** Just the round felt stage, for another figure to stand on. Suspends while textures load. */
+function FeltStage() {
+  const images = useLoader(THREE.ImageLoader, [knitUrl, feltUrl]) as unknown as HTMLImageElement[];
+  const kit = useMemo(() => makeKit(images[0], images[1]), [images]);
+  useEffect(() => () => kit.dispose(), [kit]);
+  return <Stage kit={kit} />;
+}
+
 function Stage({ kit }: { kit: Kit }) {
   return (
     <group>
@@ -792,7 +911,6 @@ interface Spring {
 }
 
 const OUT = makePose();
-const TMP = makePose();
 const V_ANCHOR = new THREE.Vector3();
 const V_D = new THREE.Vector3();
 const V_ACC = new THREE.Vector3();
@@ -850,10 +968,7 @@ export function DollModel({ pose, stage = true, shadow = true, reduced = false }
   }, [pose, reduced]);
 
   const sim = useRef({
-    t: 0,
-    weights: { dance: 0, wave: 0, idle: 0, cockpit: 0, control: 0, cruise: 0, [pose]: 1 } as Record<DollPose, number>,
-    target: pose,
-    since: 0,
+    mix: makePoseMixer(pose),
     started: false,
     prevSpin: 0,
     flare: 0,
@@ -869,53 +984,8 @@ export function DollModel({ pose, stage = true, shadow = true, reduced = false }
     const s = sim.current;
     const { pose: target, reduced: still } = settings.current;
     const dt = clamp(delta, 0, 1 / 20);
-    s.t += dt;
-    const t = s.t;
-
-    if (target !== s.target) {
-      s.target = target;
-      s.since = t;
-    }
-
-    // Fade between modes so switching never pops ('control' snaps in quickly).
-    const rate = 1 - Math.exp(-dt * (target === 'control' ? 12 : 3));
-    let total = 0;
-    for (const m of MODES) {
-      s.weights[m] += ((m === target ? 1 : 0) - s.weights[m]) * rate;
-      total += s.weights[m];
-    }
-    zeroPose(OUT);
-    if (s.weights.dance > 0.001) {
-      dancePose(TMP, t);
-      addPose(OUT, TMP, s.weights.dance / total);
-    }
-    if (s.weights.wave > 0.001) {
-      wavePose(TMP, t);
-      addPose(OUT, TMP, s.weights.wave / total);
-    }
-    if (s.weights.idle > 0.001) {
-      restPose(TMP);
-      addPose(OUT, TMP, s.weights.idle / total);
-    }
-    if (s.weights.cockpit > 0.001) {
-      cockpitPose(TMP, t);
-      addPose(OUT, TMP, s.weights.cockpit / total);
-    }
-    if (s.weights.control > 0.001) {
-      controlPose(TMP, target === 'control' ? t - s.since : 2);
-      addPose(OUT, TMP, s.weights.control / total);
-    }
-    if (s.weights.cruise > 0.001) {
-      cruisePose(TMP, t);
-      addPose(OUT, TMP, s.weights.cruise / total);
-    }
-
-    // Slow breathing under everything.
-    const breath = Math.sin((TAU * t) / 3.8);
-    OUT.squash -= 0.022 * breath;
-    OUT.lOut += 0.03 * breath;
-    OUT.rOut += 0.03 * breath;
-    OUT.headX -= 0.02 * breath;
+    stepPoseMixer(s.mix, target, dt, OUT);
+    const t = s.mix.t;
 
     // Apply the pose.
     P.rig.position.set(OUT.x, OUT.hop, 0);
@@ -1186,7 +1256,7 @@ export class QuietBoundary extends Component<{ children: ReactNode }, { failed: 
   }
 }
 
-export function StitchDoll({ pose = 'dance', stage = true }: StitchDollProps) {
+export function StitchDoll({ pose = 'dance', stage = true, figure: Figure }: StitchDollProps) {
   const reducedPref = useReducedMotion();
   const [webgl] = useState(canUseWebGL);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -1227,7 +1297,14 @@ export function StitchDoll({ pose = 'dance', stage = true }: StitchDollProps) {
           <CameraFit stage={stage} />
           <CraftLights />
           <Suspense fallback={null}>
-            <DollModel pose={shown} reduced={reduced} stage={stage} />
+            {Figure ? (
+              <>
+                {stage ? <FeltStage /> : null}
+                <Figure pose={shown} reduced={reduced} shadowY={stage ? 0.006 : 0.003} />
+              </>
+            ) : (
+              <DollModel pose={shown} reduced={reduced} stage={stage} />
+            )}
           </Suspense>
         </Canvas>
       </QuietBoundary>
