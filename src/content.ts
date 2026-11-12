@@ -97,7 +97,7 @@ export const profile = {
   tagline: 'Applied AI, data engineering and full-stack',
   location: 'Waterloo, Ontario',
   pitch:
-    "I helped build a patient records platform used by public hospitals in Bishkek. Since then I've built full-stack software, data pipelines, AI assistants and integrations at companies in Toronto and Vancouver. I've also won 8 hackathons.",
+    "I build things. Lately that's been full-stack software, data pipelines, AI assistants and integrations for companies in Toronto and Vancouver. Before that, I helped build a patient records platform used by public hospitals in Bishkek. Oh, and 8 hackathon wins.",
   // Put your resume at public/resume.pdf and set resumeUrl to './resume.pdf' to show the link.
   resumeUrl: '',
   // Add an email address here to show it on the Contact page (it will be public).

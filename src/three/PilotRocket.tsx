@@ -1,4 +1,4 @@
-// The pilot: the knitted doll's felt rocket that follows the player around the site
+// The pilot: Sackboy's felt rocket that follows the player around the site
 // (target and modes: src/lib/pilot.ts). One small transparent canvas with an
 // orthographic camera in viewport pixels: world x = px - w/2, world y = h/2 - py.
 // Orbit modes ('pod', 'planet', 'parked') circle a planet, bank into the turns and
