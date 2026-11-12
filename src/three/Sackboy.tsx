@@ -504,6 +504,8 @@ export function SackboyModel({ pose, reduced = false, shadow = true, shadowY = 0
     const s = sim.current;
     const { pose: target, reduced: still, gripHalfWidth: half } = settings.current;
     const dt = clamp(delta, 0, 1 / 20);
+    const dbgT = (window as unknown as { __sbT?: number }).__sbT; // TEMP-DEBUG
+    if (dbgT !== undefined) s.mix.t = dbgT - dt; // TEMP-DEBUG
     stepPoseMixer(s.mix, target, dt, OUT);
     const t = s.mix.t;
 
