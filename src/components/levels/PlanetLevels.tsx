@@ -10,11 +10,11 @@ import {
   type CSSProperties,
   type KeyboardEvent,
   type Ref,
-  type RefObject,
 } from 'react';
 import { AnimatePresence, motion, useReducedMotion, type Variants } from 'motion/react';
 import type { PlanetKind } from '../../content';
-import { Globe3D } from '../../three/Globe3D';
+import { getFocusGlobe, getFocusTarget, setFocusGlobe, setFocusTarget, type FocusGlobe } from '../../lib/scene';
+import { setPilotTarget } from '../../lib/pilot';
 import { FRONT_SPOT, type GlobeBadge } from '../../three/spec';
 import { ICONS } from '../icons';
 import { PinkRing } from '../PinkRing';
@@ -32,6 +32,10 @@ const TILTS = [-6, 5, -3, 7, -5, 3, -8, 4];
 // older build of either): the flow carries on after this long.
 const POCKET_OPEN_FALLBACK_MS = 2500;
 const PORTAL_EXIT_FALLBACK_MS = 2500;
+// How long the globe's pocket takes to unzip and to zip shut (Globe3D OPEN_S, CLOSE_S),
+// so the pilot rocket's dive lines up with it.
+const POCKET_OPEN_MS = 1000;
+const POCKET_CLOSE_MS = 700;
 
 // Elements that already have their own use for Enter or the arrow keys.
 const INTERACTIVE = [
@@ -281,21 +285,22 @@ interface Selection {
 type Phase = 'idle' | 'opening' | 'open' | 'closing';
 
 interface PlanetLevelsProps {
+  /** Which planet this is (the planet itself is the pod scene's focused planet). */
   planet: PlanetKind;
   items: LevelItem[];
   label: string;
-  /** Gets the globe box (the sphere's square), e.g. to fly it in from the pod. */
-  boxRef?: RefObject<HTMLDivElement | null>;
-  /** Keep the speech bubble tucked away (while the globe flies in or out). */
+  /** Keep the speech bubble tucked away (while the planet glides in or out). */
   hideBubble?: boolean;
   /** false while the page is on its way out: the page-wide keys stop working. */
   interactive?: boolean;
 }
 
-// A section's planet: a 3D globe with the levels stuck on it, a WAI-ARIA tablist of
-// sticker tabs under it, an info card for the selected level (the tabpanel), and a
-// zipper portal with the full details that opens out of a pocket on the planet.
-export function PlanetLevels({ planet, items, label, boxRef, hideBubble = false, interactive = true }: PlanetLevelsProps) {
+// A section's planet: the levels stuck on the pod scene's focused planet as badges
+// (driven from here through lib/scene.ts; this component only holds a see-through box
+// where that planet sits), a WAI-ARIA tablist of sticker tabs under it, an info card
+// for the selected level (the tabpanel), and a zipper portal with the full details
+// that opens out of a pocket on the planet.
+export function PlanetLevels({ planet, items, label, hideBubble = false, interactive = true }: PlanetLevelsProps) {
   const reduce = useReducedMotion() === true;
   const [sel, setSel] = useState<Selection>({ index: 0, dir: 1 });
   const [phase, setPhase] = useState<Phase>('idle');
@@ -380,6 +385,26 @@ export function PlanetLevels({ planet, items, label, boxRef, hideBubble = false,
     move('opening');
   }, [move]);
 
+  // Clicking a badge on the planet opens it: the selected one opens straight away,
+  // another one is turned to the front first, then opens.
+  const indexRef = useRef(index);
+  indexRef.current = index;
+  const clickTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(clickTimer.current), []);
+  const clickBadge = useCallback(
+    (next: number) => {
+      if (phaseRef.current !== 'idle') return;
+      window.clearTimeout(clickTimer.current);
+      if (next === indexRef.current) {
+        startOpen();
+        return;
+      }
+      select(next);
+      clickTimer.current = window.setTimeout(startOpen, 650);
+    },
+    [select, startOpen],
+  );
+
   // The pocket is open: grow the portal out of it.
   const onPocketOpened = useCallback(() => {
     if (phaseRef.current !== 'opening') return;
@@ -410,6 +435,72 @@ export function PlanetLevels({ planet, items, label, boxRef, hideBubble = false,
     }
     return undefined;
   }, [phase, onPocketOpened, onPortalExited]);
+
+  // The planet is the pod scene's focused planet: hand it the badges and the pocket.
+  const published = useRef<FocusGlobe | null>(null);
+  useLayoutEffect(() => {
+    const mine: FocusGlobe = {
+      badges,
+      selected: index,
+      onSelectBadge: clickBadge,
+      pocketOpen: phase !== 'idle',
+      onPocketOpened,
+    };
+    published.current = mine;
+    setFocusGlobe(mine);
+  }, [badges, index, clickBadge, phase, onPocketOpened]);
+  useLayoutEffect(
+    () => () => {
+      if (getFocusGlobe() === published.current) setFocusGlobe(null);
+    },
+    [],
+  );
+
+  // The see-through globe box: the scene puts the focused planet exactly on it.
+  const setGlobeBox = useCallback((el: HTMLDivElement | null) => {
+    globeRef.current = el;
+    if (!el) return undefined;
+    setFocusTarget(el);
+    return () => {
+      globeRef.current = null;
+      if (getFocusTarget() === el) setFocusTarget(null);
+    };
+  }, []);
+
+  // The pilot rocket follows the level in: it dives into the opening pocket, loops by
+  // the portal's anchor while the level is open, pops back out of the pocket as it
+  // closes; then the scene sends it round the planet again (PlanetCarousel).
+  useEffect(() => {
+    if (phase === 'idle') return undefined;
+    const badgeRect = () => {
+      const box = globeRef.current?.getBoundingClientRect();
+      if (!box) return null;
+      const size = 60;
+      const cx = box.left + box.width * FRONT_SPOT.x;
+      const cy = box.top + box.height * FRONT_SPOT.y;
+      return { left: cx - size / 2, top: cy - size / 2, width: size, height: size };
+    };
+    if (phase === 'opening' || phase === 'closing') {
+      const rect = badgeRect();
+      if (rect) setPilotTarget({ rect, mode: 'dive' }, { duration: phase === 'opening' ? POCKET_OPEN_MS : POCKET_CLOSE_MS });
+      return undefined;
+    }
+    // open: the portal is up; aim at its anchor (again once it has settled, and on resize)
+    const aimPortal = () => {
+      const anchor = document.querySelector('[data-pilot-anchor]');
+      if (!anchor) return;
+      const r = anchor.getBoundingClientRect();
+      setPilotTarget({ rect: { left: r.left, top: r.top, width: r.width, height: r.height }, mode: 'portal' }, { instant: true });
+    };
+    const first = requestAnimationFrame(aimPortal);
+    const settled = window.setTimeout(aimPortal, 500);
+    window.addEventListener('resize', aimPortal);
+    return () => {
+      cancelAnimationFrame(first);
+      window.clearTimeout(settled);
+      window.removeEventListener('resize', aimPortal);
+    };
+  }, [phase]);
 
   const showWorkingOnIt = () => {
     if (!item) return;
@@ -508,25 +599,9 @@ export function PlanetLevels({ planet, items, label, boxRef, hideBubble = false,
     <div className="levels">
       <div className="levels-layout">
         <div className="levels-world">
-          <div
-            ref={(el) => {
-              globeRef.current = el;
-              if (boxRef) boxRef.current = el;
-            }}
-            className="levels-globe-box"
-          >
-            {/* Pointer users can pick badges on the globe; the tabs below carry the names. */}
-            <div className="levels-globe" aria-hidden="true">
-              <Globe3D
-                kind={planet}
-                badges={badges}
-                selected={index}
-                onSelectBadge={select}
-                pocketOpen={phase !== 'idle'}
-                onPocketOpened={onPocketOpened}
-                detail="hero"
-              />
-            </div>
+          {/* The planet itself is drawn by the pod scene underneath, exactly on this box.
+              Pointer users can pick badges on it; the tabs below carry the names. */}
+          <div ref={setGlobeBox} className="levels-globe-box" data-planet={planet}>
             <LevelBubble key={item.id} item={item} hidden={busy || hideBubble} reduce={reduce} />
           </div>
 

@@ -39,6 +39,9 @@ const BOB = 0.014;
 const DRAG_RETURN_S = 2.5;
 const CLICK_SLOP_PX = 6;
 
+const BADGE_EXIT_MS = 420; // badges sink back into the fabric before they are dropped
+const BADGE_SINK = 0.045; // how far (in radii) the badge layer sinks when hidden
+
 const OPEN_S = 1.0;
 const CLOSE_S = 0.7;
 const REDUCED_FADE_S = 0.15;
@@ -963,13 +966,15 @@ interface BadgeProps {
   shape: BadgeShape;
   textures: BadgeTextures;
   selected: boolean;
+  /** The badges are being taken off: shrink away. */
+  leaving: boolean;
   reduced: boolean;
   pocket: PocketAnim;
   onPick: (index: number) => void;
   onHover: (index: number, on: boolean) => void;
 }
 
-function Badge({ index, spot, shape, textures, selected, reduced, pocket, onPick, onHover }: BadgeProps) {
+function Badge({ index, spot, shape, textures, selected, leaving, reduced, pocket, onPick, onHover }: BadgeProps) {
   const invalidate = useThree((s) => s.invalidate);
   const scaleRef = useRef<THREE.Group>(null);
   const liftRef = useRef<THREE.Group>(null);
@@ -1015,12 +1020,16 @@ function Badge({ index, spot, shape, textures, selected, reduced, pocket, onPick
     const hovered = s.hover && !pocket.active;
     s.t += dt;
     if (reduced) {
-      s.appear = 1;
+      s.appear = leaving ? 0 : 1;
       s.scale = hovered ? HOVER_SCALE : 1;
       s.lift = on;
       s.ring = on;
     } else {
-      if (s.t > index * 0.07) {
+      if (leaving) {
+        // peeled off again: a quick shrink, no bounce
+        s.appear += (0 - s.appear) * (1 - Math.exp(-dt * 11));
+        s.appearV = 0;
+      } else if (s.t > index * 0.07) {
         // slapped on: a springy pop with a little overshoot, staggered per badge
         for (let left = dt; left > 0; left -= 1 / 120) {
           const h = Math.min(left, 1 / 120);
@@ -1215,6 +1224,8 @@ interface SceneProps {
   badges: GlobeBadge[];
   badgeTextures: (BadgeTextures | null)[];
   selected: number; // -1 = free spin
+  /** The badges are on their way off (shrinking, sinking); the planet spins freely again. */
+  leaving: boolean;
   pocketOpen: boolean;
   excited: boolean;
   reduced: boolean;
@@ -1239,6 +1250,7 @@ function Scene(p: SceneProps) {
   const invalidate = useThree((s) => s.invalidate);
   const bobRef = useRef<THREE.Group>(null);
   const orientRef = useRef<THREE.Group>(null);
+  const badgeLayerRef = useRef<THREE.Group>(null);
   const fit = useRef<Fit>({ frac: 1 / (1 + 2 * p.bleed), aspect: 1, distance: 9 });
   const pocket = useMemo(newPocketAnim, []);
   const onLost = useLatest(p.onLost);
@@ -1346,11 +1358,11 @@ function Scene(p: SceneProps) {
   const used = useRef(new Set<THREE.Texture>());
   used.current.add(p.surface.map);
   used.current.add(p.surface.bump);
+  used.current.add(getBlankTexture()); // the warm-up stand-ins
   if (count > 0) {
     used.current.add(getRingTexture());
     used.current.add(getHoleTexture());
     used.current.add(getGlowTexture());
-    used.current.add(getBlankTexture());
   }
   p.badgeTextures.forEach((t) => {
     if (t) {
@@ -1385,7 +1397,7 @@ function Scene(p: SceneProps) {
   // In 'demand' mode (reduced motion) nothing renders unless asked.
   useEffect(() => {
     invalidate();
-  }, [invalidate, p.loop, p.selected, p.badgeTextures, p.reduced, p.excited, p.surface, p.pocketOpen]);
+  }, [invalidate, p.loop, p.selected, p.badgeTextures, p.reduced, p.excited, p.surface, p.pocketOpen, p.leaving]);
 
   const motion = useRef({
     yaw: 0,
@@ -1402,6 +1414,10 @@ function Scene(p: SceneProps) {
     lastSelected: -1,
     returnNow: false,
     started: false,
+    spun: false, // has spun freely on screen (so badges arriving later ease in, no intro swing)
+    lastTarget: new THREE.Vector3(0, 0, 1),
+    bobAmp: 1,
+    badgeIn: 0, // 0 = badge layer sunk into the fabric, 1 = out
     readySent: false,
     pushed: false,
   });
@@ -1418,7 +1434,19 @@ function Scene(p: SceneProps) {
     if (!orient || !bob) return;
     const dt = Math.min(delta, 0.1);
     s.t += dt;
-    const badgeMode = p.selected >= 0 && p.selected < layout.spots.length;
+    const badgeMode = !p.leaving && p.selected >= 0 && p.selected < layout.spots.length;
+
+    // ---- badge layer: rises out of the fabric when badges arrive, sinks back when they go
+    const layer = badgeLayerRef.current;
+    if (layer) {
+      const want = count > 0 && !p.leaving ? 1 : 0;
+      const before = s.badgeIn;
+      s.badgeIn = p.reduced ? want : s.badgeIn + (want - s.badgeIn) * (1 - Math.exp(-dt * (want ? 7 : 10)));
+      if (Math.abs(s.badgeIn - want) < 1e-3) s.badgeIn = want;
+      layer.scale.setScalar(1 - BADGE_SINK * (1 - s.badgeIn));
+      layer.visible = s.badgeIn > 0.002;
+      if (s.badgeIn !== before) invalidate();
+    }
 
     // ---- pocket timeline
     const P = pocket;
@@ -1461,14 +1489,23 @@ function Scene(p: SceneProps) {
     if (badgeMode) {
       // aim the (lifted) selected badge's centre exactly at FRONT_SPOT
       target = frontSpotWorld(fit.current, BADGE_R + BADGE_LIFT, scratchFront).normalize().applyAxisAngle(Z_AXIS, -TILT);
+      s.lastTarget.copy(target);
       const goal = solveOrientation(layout.spots[p.selected].vec, target);
       let ty = nearestAngle(goal.yaw, s.yaw);
       if (!s.started) {
         s.started = true;
-        s.yaw = p.reduced ? ty : ty - INTRO_SWING;
-        s.pitch = goal.pitch;
-        s.yawV = 0;
-        s.pitchV = 0;
+        if (s.spun && !p.reduced) {
+          // badges arriving on a planet that was spinning on screen: carry its spin
+          // into the spring, which then eases it round to the selected badge
+          s.mode = 'spring';
+          s.yawV = s.spin;
+          s.pitchV = 0;
+        } else {
+          s.yaw = p.reduced ? ty : ty - INTRO_SWING;
+          s.pitch = goal.pitch;
+          s.yawV = 0;
+          s.pitchV = 0;
+        }
       }
       if (s.lastSelected !== p.selected) s.returnNow = s.mode !== 'spring'; // picked a tab mid-drag
       s.lastSelected = p.selected;
@@ -1521,21 +1558,34 @@ function Scene(p: SceneProps) {
         s.wobble += ((settled ? 1 : 0) - s.wobble) * (1 - Math.exp(-dt * (settled ? 0.8 : 6)));
         wobble = s.wobble * WOBBLE * (0.8 * Math.sin(s.t * 0.55) + 0.2 * Math.sin(s.t * 1.3 + 1));
       }
-      bob.position.y = 0;
     } else {
+      if (s.started) {
+        // badges taken off: spin on from the speed the spring had, then pick up pace
+        s.started = false;
+        s.spin = s.yawV;
+        s.yawV = 0;
+      }
       s.mode = 'spring';
-      s.started = false;
       if (p.reduced) {
         s.pitch = FREE_PITCH;
         s.pitchV = 0;
-        bob.position.y = 0;
+        s.wobble = 0;
       } else {
+        s.spun = true;
         s.spin += ((p.excited ? SPIN_EXCITED : SPIN_CALM) - s.spin) * (1 - Math.exp(-dt * 2.2));
         s.yaw = (s.yaw + s.spin * dt) % TWO_PI;
         [s.pitch, s.pitchV] = spring(s.pitch, s.pitchV, FREE_PITCH, SETTLE_OMEGA / 2, dt);
-        bob.position.y = Math.sin(s.t * 1.15) * BOB;
+        // the idle rock about the last badge dies away instead of snapping off
+        s.wobble *= Math.exp(-dt * 3);
+        if (s.wobble > 1e-3) {
+          target = s.lastTarget;
+          wobble = s.wobble * WOBBLE * (0.8 * Math.sin(s.t * 0.55) + 0.2 * Math.sin(s.t * 1.3 + 1));
+        }
       }
     }
+    // free planets float gently; one showing its badges holds still
+    s.bobAmp = p.reduced ? 0 : s.bobAmp + ((badgeMode ? 0 : 1) - s.bobAmp) * (1 - Math.exp(-dt * 3));
+    bob.position.y = Math.sin(s.t * 1.15) * BOB * s.bobAmp;
     scratchQuat.setFromEuler(scratchEuler.set(s.pitch, s.yaw, 0, 'XYZ'));
     if (target && wobble !== 0) {
       // twist about the axis through the selected badge: the planet rocks, the badge stays put
@@ -1581,50 +1631,57 @@ function Scene(p: SceneProps) {
             <Boundary>
               <SurfaceProps kind={p.kind} reducedMotion={p.reduced} />
             </Boundary>
-            {count > 0 ? (
-              <>
-                <Zippers zippers={zippers} selected={p.selected} pocket={pocket} />
-                <Pocket spot={selectedSpot} shape={selectedShape} pocket={pocket} reduced={p.reduced} />
-              </>
-            ) : null}
-            {layout.spots.map((spot, i) => {
-              const badge = p.badges[i];
-              const textures = p.badgeTextures[i];
-              const shape = badgeShapes[i];
-              if (!badge || !textures || !shape) return null;
-              return (
-                <Badge
-                  key={`${badge.id}-${i}`}
-                  index={i}
-                  spot={spot}
-                  shape={shape}
-                  textures={textures}
-                  selected={i === p.selected}
-                  reduced={p.reduced}
-                  pocket={pocket}
-                  onPick={p.onPick}
-                  onHover={p.onHover}
-                />
-              );
-            })}
+            {/* Badges, zippers and pocket: one layer that rises out of the fabric when
+                the badges arrive and sinks back in when they go. */}
+            <group ref={badgeLayerRef} visible={false}>
+              {count > 0 ? (
+                <>
+                  <Zippers zippers={zippers} selected={p.selected} pocket={pocket} />
+                  <Pocket spot={selectedSpot} shape={selectedShape} pocket={pocket} reduced={p.reduced} />
+                </>
+              ) : null}
+              {layout.spots.map((spot, i) => {
+                const badge = p.badges[i];
+                const textures = p.badgeTextures[i];
+                const shape = badgeShapes[i];
+                if (!badge || !textures || !shape) return null;
+                return (
+                  <Badge
+                    key={`${badge.id}-${i}`}
+                    index={i}
+                    spot={spot}
+                    shape={shape}
+                    textures={textures}
+                    selected={i === p.selected}
+                    leaving={p.leaving}
+                    reduced={p.reduced}
+                    pocket={pocket}
+                    onPick={p.onPick}
+                    onHover={p.onHover}
+                  />
+                );
+              })}
+            </group>
           </group>
         </group>
         {/* soft glowing edge: halo just outside the limb plus a fresnel rim on the surface */}
         <mesh geometry={shell} material={halo} scale={HALO_R} renderOrder={0} dispose={null} />
         <mesh geometry={shell} material={rim} scale={RIM_R} renderOrder={5} dispose={null} />
       </group>
-      {count > 0 ? (
-        <group visible={false}>
-          {warm.materials.map((m) => (
-            <mesh key={m.uuid} geometry={warm.geometry} material={m} dispose={null} />
-          ))}
-        </group>
-      ) : null}
+      {/* always there: a planet may get its badges later (focused from the pod) */}
+      <group visible={false}>
+        {warm.materials.map((m) => (
+          <mesh key={m.uuid} geometry={warm.geometry} material={m} dispose={null} />
+        ))}
+      </group>
     </>
   );
 }
 
 /* ------------------------------------------------------------- globe */
+
+/** Globe3DProps plus a cap on the canvas pixel ratio (e.g. for a planet shown small). */
+export type Globe3DViewProps = Globe3DProps & { maxDpr?: number };
 
 function GlobeInner({
   kind,
@@ -1638,7 +1695,8 @@ function GlobeInner({
   excited = false,
   bleed = 0.3,
   className,
-}: Globe3DProps) {
+  maxDpr,
+}: Globe3DViewProps) {
   const reduced = useReducedMotion() ?? false;
   const [webgl] = useState(supportsWebGL);
   const mapPx = MAP_PX[detail];
@@ -1659,13 +1717,29 @@ function GlobeInner({
   const alive = useRef(true);
   const answered = useRef(false); // last pocket state reported to the page
 
-  const list = useMemo(() => badges ?? [], [badges]);
+  // Badges can come and go on a live planet (a pod planet getting focused). When they
+  // are taken away, keep drawing them for a moment so they shrink and sink away.
+  const incoming = useMemo(() => badges ?? [], [badges]);
+  const [shown, setShown] = useState<{ list: GlobeBadge[]; leaving: boolean }>(() => ({ list: incoming, leaving: false }));
+  if (incoming.length > 0) {
+    if (shown.list !== incoming || shown.leaving) setShown({ list: incoming, leaving: false });
+  } else if (shown.list.length > 0 && !shown.leaving) {
+    setShown({ list: shown.list, leaving: true });
+  }
+  useEffect(() => {
+    if (!shown.leaving) return undefined;
+    const id = window.setTimeout(() => setShown({ list: [], leaving: false }), reduced ? 0 : BADGE_EXIT_MS);
+    return () => window.clearTimeout(id);
+  }, [shown, reduced]);
+  const list = shown.list;
+  const leaving = shown.leaving;
+
   const listRef = useLatest(list);
   const selectRef = useLatest(onSelectBadge);
   const openedRef = useLatest(onPocketOpened);
   const closedRef = useLatest(onPocketClosed);
   const count = list.length;
-  const sel = count > 0 ? Math.min(count - 1, Math.max(0, Math.round(selected ?? 0))) : -1;
+  const sel = count > 0 && !leaving ? Math.min(count - 1, Math.max(0, Math.round(selected ?? 0))) : -1;
   const pocketActive = pocketOpen || pocketShown;
   const pocketActiveRef = useLatest(pocketActive);
 
@@ -1790,7 +1864,7 @@ function GlobeInner({
     [selectRef, pocketActiveRef],
   );
 
-  const interactive = live && ready && count > 0 && !pocketActive;
+  const interactive = live && ready && count > 0 && !leaving && !pocketActive;
 
   // Drag to spin, with inertia; the scene eases back to the selected badge 2.5 s after release.
   useEffect(() => {
@@ -1874,6 +1948,11 @@ function GlobeInner({
   }, []);
 
   const loop: Loop = !compiled || (!visible && !pocketActive) ? 'never' : reduced ? 'demand' : 'always';
+  const dprMax = DPR[detail][1];
+  const dpr = useMemo<[number, number]>(
+    () => [1, maxDpr ? Math.max(1, Math.min(dprMax, maxDpr)) : dprMax],
+    [maxDpr, dprMax],
+  );
   const classes = ['globe3d', instant ? 'is-instant' : '', ready ? 'is-ready' : '', interactive ? 'is-interactive' : '', className ?? '']
     .filter(Boolean)
     .join(' ');
@@ -1891,7 +1970,7 @@ function GlobeInner({
           <Boundary onError={fail}>
             <Canvas
               frameloop={loop}
-              dpr={DPR[detail]}
+              dpr={dpr}
               gl={GL_OPTIONS}
               camera={CAMERA_OPTIONS}
               resize={RESIZE_OPTIONS}
@@ -1905,6 +1984,7 @@ function GlobeInner({
                 badges={list}
                 badgeTextures={badgeTextures}
                 selected={sel}
+                leaving={leaving}
                 pocketOpen={pocketOpen}
                 excited={excited}
                 reduced={reduced}
@@ -1933,7 +2013,7 @@ function GlobeInner({
  * With cached maps (preloadGlobes) it shows on the first frame; otherwise it stays
  * transparent until painted, then fades in.
  */
-export function Globe3D(props: Globe3DProps) {
+export function Globe3D(props: Globe3DViewProps) {
   // A different planet or detail level starts fresh.
   return <GlobeInner key={`${props.kind}:${props.detail ?? 'pod'}`} {...props} />;
 }

@@ -1,44 +1,34 @@
 import { useEffect } from 'react';
-import { profile, sections } from '../content';
-import { go } from '../lib/route';
-import { podPlanetRect, startFlight } from '../lib/flight';
+import { profile } from '../content';
 import { ButtonHints } from './ButtonHints';
 import { TextStickerLink } from './Sticker';
-import { PlanetCarousel, type PodFlight } from './PlanetCarousel';
+import { PlanetCarousel } from './PlanetCarousel';
 
 interface PodMenuProps {
   selected: number;
   onSelect: (index: number) => void;
   restoreFocus: boolean;
-  /** false while a section page is open: the pod stays mounted (planets alive) but hidden. */
+  /** false while a section is open (or the site is not shown yet): no keys, no pointer. */
   active?: boolean;
-  /** 'leaving' right after opening a section, 'arriving' while coming back from one. */
-  flight?: PodFlight;
+  /** The focused section's planet while a section page is open, else null. */
+  focus?: number | null;
 }
 
-export function PodMenu({ selected, onSelect, restoreFocus, active = true, flight = null }: PodMenuProps) {
+// The pod: the scene every page lives in. On its own it is the planet carousel; with a
+// section open, the section's planet is focused and the pod's own chrome steps back.
+export function PodMenu({ selected, onSelect, restoreFocus, active = true, focus = null }: PodMenuProps) {
   // Every time the pod opens (first load, or back from a section).
   useEffect(() => {
     if (active) document.title = profile.name;
   }, [active]);
 
-  // Fly to the centre planet: note where it is on screen, then open its section. The
-  // section page starts its big globe right there and flies it into place.
-  const openSection = (index: number) => {
-    const id = sections[index].id;
-    const from = podPlanetRect();
-    onSelect(index);
-    if (from) startFlight(id, from);
-    go(id);
-  };
-
-  const flightClass = flight === 'leaving' ? ' is-leaving' : flight === 'arriving' ? ' is-arriving' : '';
+  const focused = focus !== null;
 
   return (
-    <div className={`pod${flightClass}`}>
-      <header className="pod-header">
+    <div className={`pod${focused ? ' is-focused' : ''}`}>
+      <header className="pod-header" inert={focused}>
         {/* The name card lives on the start screen; screen readers still get a page heading. */}
-        <h1 className="visually-hidden">{profile.name}</h1>
+        {focused ? null : <h1 className="visually-hidden">{profile.name}</h1>}
         <ul className="link-stickers" aria-label="Elsewhere">
           {profile.links.map((link, i) => (
             <li key={link.href}>
@@ -53,25 +43,20 @@ export function PodMenu({ selected, onSelect, restoreFocus, active = true, fligh
         </ul>
       </header>
 
-      <main id={active ? 'main' : undefined} className="pod-main">
-        <PlanetCarousel
-          selected={selected}
-          onSelect={onSelect}
-          restoreFocus={restoreFocus}
-          active={active}
-          flight={flight}
-          onOpen={openSection}
-        />
+      <main id={focused ? undefined : 'main'} className="pod-main">
+        <PlanetCarousel selected={selected} onSelect={onSelect} restoreFocus={restoreFocus} active={active} focus={focus} />
       </main>
 
       <div className="pod-floor" aria-hidden="true" />
 
-      <ButtonHints
-        hints={[
-          { keys: ['←', '→'], label: 'Turn' },
-          { keys: ['Enter'], label: 'Open' },
-        ]}
-      />
+      <div className="pod-hints" inert={focused}>
+        <ButtonHints
+          hints={[
+            { keys: ['←', '→'], label: 'Turn' },
+            { keys: ['Enter'], label: 'Open' },
+          ]}
+        />
+      </div>
     </div>
   );
 }

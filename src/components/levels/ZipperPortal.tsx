@@ -12,30 +12,34 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useIsPresent, useReducedMotion, type Variants } from 'motion/react';
 import type { ZipperPortalProps } from './types';
 
-// A level opens like a pocket on the planet: warm light pours out of it until
-// the screen is a soft blue haze with gold rays, then the level page (a stitched
-// linen sheet with a cardboard label, a taped-on polaroid and a cut-paper Close
-// tag) rises out of the light. Closing sends the page back to the pocket and the
-// light contracts after it.
+// A level opens out of the zipper pocket on the planet: warm light pours out,
+// then the level page rises out of it. The page is the inside of an opened jeans
+// pocket (denim, double gold topstitching, copper rivets, a brass zipper along the
+// top with its pull dangling, a leather label) with the level's details pinned
+// into it as craft pieces. The pieces themselves are styled in zipper.css.
+// Closing sends the pocket back to the planet and the light contracts after it.
 
 /* ---------------------------------------------------------
    Timeline (seconds)
    --------------------------------------------------------- */
 const LIGHT_IN = 0.45; // light floods out of the pocket
-const CARD_AT = 0.36; // card starts rising (slightly before the light settles)
-const CARD_IN = 0.35; // card rises with a little overshoot
-const CARD_OUT = 0.24; // card shrinks back toward the pocket
+const CARD_AT = 0.36; // pocket starts rising (slightly before the light settles)
+const CARD_IN = 0.35; // pocket rises with a little overshoot
+const CARD_OUT = 0.24; // pocket shrinks back toward the planet
 const LIGHT_OUT_AT = 0.1; // light starts contracting
 const LIGHT_OUT = 0.3; // light contracts back into the pocket
 const FADE = 0.15; // reduced motion: plain fades
+const INTRO_MS = 2600; // the pieces' drop-in show (CSS) is over by then
 
 const EASE_OUT: [number, number, number, number] = [0.2, 0.7, 0.3, 1];
 const EASE_IN: [number, number, number, number] = [0.5, 0, 0.75, 0];
 const EASE_RISE: [number, number, number, number] = [0.34, 1.45, 0.64, 1];
 
-// Root padding (desktop), mirrored from zipper.css, so the card can start exactly at the pocket.
-const PAD_TOP = 64;
-const PAD_BOTTOM = 40;
+// Root padding on wide screens, mirrored from zipper.css, so the pocket can start
+// exactly at the planet. On phones (see COMPACT in zipper.css) it is full-screen.
+const PAD_TOP = 36;
+const PAD_BOTTOM = 44;
+const isCompact = (w: number, h: number) => w <= 600 || h <= 500;
 
 const DEFAULT_ACCENT = '#c8146a';
 
@@ -48,7 +52,7 @@ interface Geometry {
   oy: number;
   /** Distance from the pocket to the farthest viewport corner. */
   reach: number;
-  /** Offset from the card's resting centre to the pocket. */
+  /** Offset from the dialog's resting centre to the pocket. */
   dx: number;
   dy: number;
 }
@@ -102,7 +106,7 @@ const motesFull: Variants = {
   open: { opacity: 1, transition: { delay: 0.2, duration: 0.4 } },
 };
 
-// Warm glow right behind the card.
+// Warm glow right behind the pocket.
 const haloFull: Variants = {
   closed: { opacity: 0, transition: { duration: 0.2 } },
   open: { opacity: 1, transition: { delay: CARD_AT, duration: 0.4 } },
@@ -148,6 +152,18 @@ const MOTES = [
   { left: 89, top: 58, size: 5, dx: -16, dy: -80, dur: 7, delay: -0.6 },
   { left: 53, top: 46, size: 4, dx: 22, dy: -70, dur: 11, delay: -7.5 },
   { left: 8, top: 86, size: 6, dx: 34, dy: -95, dur: 9.5, delay: -5.2 },
+];
+
+// Felt confetti stars that puff out of the pocket mouth (px, degrees, seconds).
+const STARS = [
+  { dx: -170, dy: -80, r: -50, size: 22, color: '#ffd23f', delay: 0 },
+  { dx: -105, dy: -135, r: 35, size: 18, color: '#ff7ab4', delay: 0.04 },
+  { dx: -35, dy: -115, r: -25, size: 15, color: '#5ad6e4', delay: 0.08 },
+  { dx: 30, dy: -150, r: 55, size: 20, color: '#fff3d6', delay: 0.02 },
+  { dx: 105, dy: -120, r: -40, size: 22, color: '#f08a24', delay: 0.06 },
+  { dx: 175, dy: -70, r: 30, size: 17, color: '#9be27a', delay: 0.1 },
+  { dx: -225, dy: -25, r: 65, size: 15, color: '#c8a2ff', delay: 0.12 },
+  { dx: 230, dy: -20, r: -60, size: 16, color: '#ffd23f', delay: 0.09 },
 ];
 
 /* ---------------------------------------------------------
@@ -219,7 +235,8 @@ function getGeometry(origin: ZipperPortalProps['origin'], w: number, h: number):
     Math.hypot(ox, h - oy),
     Math.hypot(w - ox, h - oy),
   );
-  return { ox, oy, reach, dx: ox - w / 2, dy: oy - (PAD_TOP + h - PAD_BOTTOM) / 2 };
+  const centreY = isCompact(w, h) ? h / 2 : (PAD_TOP + h - PAD_BOTTOM) / 2;
+  return { ox, oy, reach, dx: ox - w / 2, dy: oy - centreY };
 }
 
 /** A square of radius `r` centred on the pocket. */
@@ -281,6 +298,82 @@ function trapTab(event: ReactKeyboardEvent, dialog: HTMLElement, heading: HTMLEl
 }
 
 /* ---------------------------------------------------------
+   Decorative pieces
+   --------------------------------------------------------- */
+
+// The chunky brass zipper pull that dangles from the pocket's zipper.
+function ZipperPull() {
+  const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const metal = `zp-metal-${id}`;
+  const shine = `zp-shine-${id}`;
+  return (
+    <svg viewBox="0 0 48 96" focusable="false" aria-hidden="true">
+      <defs>
+        <linearGradient id={metal} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#fff1c4" />
+          <stop offset="0.35" stopColor="#e2b44e" />
+          <stop offset="0.72" stopColor="#b3822a" />
+          <stop offset="1" stopColor="#e9c46a" />
+        </linearGradient>
+        <linearGradient id={shine} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff6d6" />
+          <stop offset="1" stopColor="#c99a34" />
+        </linearGradient>
+      </defs>
+      {/* the tab you grab, with a hole punched through it */}
+      <path
+        d="M15 24h18a4 4 0 0 1 4 4v52a13 13 0 0 1-26 0V28a4 4 0 0 1 4-4ZM20 62a4 4 0 0 0-4 4v10a8 8 0 0 0 16 0V66a4 4 0 0 0-4-4Z"
+        fill={`url(#${metal})`}
+        fillRule="evenodd"
+        stroke="#5a3f0c"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path d="M15.5 40v32" fill="none" stroke="#fff8dc" strokeOpacity="0.6" strokeWidth="2.5" strokeLinecap="round" />
+      {/* the slider that rides on the teeth */}
+      <path
+        d="M7 2h34q5 0 4 5l-5 24q-1 5-6 5H14q-5 0-6-5L3 7q-1-5 4-5Z"
+        fill={`url(#${metal})`}
+        stroke="#5a3f0c"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path d="M11 6h26l-3.6 18.5q-.6 3-3.6 3H18.2q-3 0-3.6-3Z" fill={`url(#${shine})`} opacity="0.85" />
+      <rect x="16" y="29" width="16" height="10" rx="5" fill={`url(#${metal})`} stroke="#5a3f0c" strokeWidth="2" />
+      <circle cx="24" cy="15" r="3" fill="#8a6418" />
+      <circle cx="23" cy="14" r="1" fill="#fff6d6" />
+    </svg>
+  );
+}
+
+// Denim, double topstitching, fray and rivets: everything that makes the pocket.
+function PocketCloth() {
+  return (
+    <>
+      <span className="zp-denim" aria-hidden="true">
+        <svg className="zp-ts zp-ts--outer" focusable="false">
+          <rect x="1.1" y="1.1" width="100%" height="100%" rx="14" />
+        </svg>
+        <svg className="zp-ts zp-ts--inner" focusable="false">
+          <rect x="1.1" y="1.1" width="100%" height="100%" rx="9" />
+        </svg>
+        <span className="zp-fray" />
+      </span>
+      <span className="zp-rivet zp-rivet--tl" aria-hidden="true" />
+      <span className="zp-rivet zp-rivet--tr" aria-hidden="true" />
+      <span className="zp-rivet zp-rivet--bl" aria-hidden="true" />
+      <span className="zp-rivet zp-rivet--br" aria-hidden="true" />
+      <div className="zp-zipper" aria-hidden="true">
+        <span className="zp-zipper-teeth" />
+        <span className="zp-zipper-pull">
+          <ZipperPull />
+        </span>
+      </div>
+    </>
+  );
+}
+
+/* ---------------------------------------------------------
    The dialog itself (mounted only while AnimatePresence keeps it)
    --------------------------------------------------------- */
 function ZipperDialog({
@@ -300,6 +393,14 @@ function ZipperDialog({
   const headingRef = useRef<HTMLHeadingElement>(null);
   const { w, h } = useViewportSize();
   const geo = getGeometry(origin, w, h);
+
+  // The drop-in show (zipper.css, .zp-pocket--intro) runs on the first open only,
+  // so content that swaps in later (e.g. "Working on it") appears straight away.
+  const [intro, setIntro] = useState(true);
+  useEffect(() => {
+    const id = window.setTimeout(() => setIntro(false), INTRO_MS);
+    return () => window.clearTimeout(id);
+  }, []);
 
   // Focus goes to the heading right away; the scrolling box around it then
   // answers arrow keys and Page Up/Down.
@@ -379,38 +480,33 @@ function ZipperDialog({
         variants={reduce ? dialogReduced : dialogFull}
       >
         <div
-          className={art ? 'zp-sheet zp-sheet--art' : 'zp-sheet'}
+          className={['zp-pocket', art ? 'zp-pocket--art' : '', intro ? 'zp-pocket--intro' : ''].join(' ').trim()}
           style={{ '--zp-accent': color ?? DEFAULT_ACCENT } as CSSProperties}
         >
-          {/* felt sheet peeking out behind, the linen page, masking tape */}
-          <span className="zp-back" aria-hidden="true" />
-          <span className="zp-page" aria-hidden="true">
-            <svg className="zp-stitch" focusable="false">
-              <rect x="1.5" y="1.5" width="100%" height="100%" rx="12" />
-            </svg>
-          </span>
-          <span className="zp-tape zp-tape--tl" aria-hidden="true" />
-          <span className="zp-tape zp-tape--bl" aria-hidden="true" />
+          <PocketCloth />
 
-          <p className="zp-label">{kicker ?? 'Level'}</p>
+          {/* Leather label, like the one on the back of a pair of jeans */}
+          <div className="zp-bar">
+            <p className="zp-leather">{kicker ?? 'Level'}</p>
+          </div>
 
           <div className="zp-scroll" tabIndex={-1}>
             <div className="zp-head">
               <h2 ref={headingRef} id={titleId} className="zp-title" tabIndex={-1}>
-                {title}
+                <span className="zp-title-text">{title}</span>
               </h2>
               {meta ? <p className="zp-ribbon">{meta}</p> : null}
+              {art ? (
+                <div className="zp-art" aria-hidden="true">
+                  {art}
+                </div>
+              ) : null}
             </div>
             <div className="zp-body">{children}</div>
           </div>
 
-          {art ? (
-            <div className="zp-polaroid" aria-hidden="true">
-              <span className="zp-polaroid-tape zp-polaroid-tape--l" />
-              <span className="zp-polaroid-tape zp-polaroid-tape--r" />
-              <span className="zp-photo">{art}</span>
-            </div>
-          ) : null}
+          {/* Where the player's rocket loops: kept clear of controls. */}
+          <span className="zp-pilot-anchor" data-pilot-anchor="" aria-hidden="true" />
 
           <button type="button" className="zp-close" onClick={onClose}>
             <svg className="zp-close-shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
@@ -427,6 +523,27 @@ function ZipperDialog({
             </kbd>
           </button>
         </div>
+
+        {reduce ? null : (
+          <div className="zp-confetti" aria-hidden="true">
+            {STARS.map((s, i) => (
+              <span
+                key={i}
+                className="zp-star"
+                style={
+                  {
+                    '--zp-dx': `${s.dx}px`,
+                    '--zp-dy': `${s.dy}px`,
+                    '--zp-r': `${s.r}deg`,
+                    '--zp-s': `${s.size}px`,
+                    '--zp-c': s.color,
+                    '--zp-d': `${s.delay}s`,
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );

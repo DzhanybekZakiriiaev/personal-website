@@ -17,6 +17,7 @@
 
 .title-inner {
   position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
@@ -26,23 +27,17 @@
   align-content: start;
   justify-items: center;
   min-height: 100%;
-  padding: 0 16px max(28px, env(safe-area-inset-bottom));
+  padding: 0 max(16px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
 
-/* The 3D flight fills the whole layer, behind the content. */
+/* The 3D flight covers the whole viewport, behind the content, so on Start the
+   rocket can fly anywhere over the planets appearing underneath. */
 .title-scene {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-}
-
-.title-sign-area,
-.title-hero,
-.title-summary {
-  position: relative;
-  z-index: 1;
 }
 
 /* ---------- Cardboard name sign on two strings ---------- */
@@ -51,7 +46,8 @@
   display: flex;
   justify-content: center;
   width: 100%;
-  padding-top: 8px;
+  /* the strings hang from just below a phone's notch or status bar */
+  padding-top: calc(8px + env(safe-area-inset-top));
 }
 
 .title-hang {
@@ -168,13 +164,15 @@
   width: 100%;
 }
 
-/* Empty box; the 3D scene frames the rocket inside it. */
+/* Empty box; the 3D scene frames the rocket inside it. svh: the height with the
+   phone browser's toolbars showing, so Start stays above the fold. */
 .title-stage {
   width: 100%;
   height: clamp(190px, 40vh, 400px);
+  height: clamp(190px, 40svh, 400px);
 }
 
-.title-actions {
+.title-actions-inner {
   display: grid;
   justify-items: center;
   gap: 10px;
@@ -329,42 +327,24 @@
   list-style: none;
 }
 
-/* ---------- Felt wipe that covers the screen on Start ---------- */
-/* 100vmax across, grown to 2x by script (or set to 2x for the reduced-motion fade). */
-.title-wipe {
-  position: fixed;
-  left: var(--wipe-x, 50%);
-  top: var(--wipe-y, 45%);
-  z-index: 3;
-  width: 100vmax;
-  height: 100vmax;
-  margin: -50vmax 0 0 -50vmax;
-  border-radius: 50%;
-  background: radial-gradient(circle, #ffffff 0%, #eef5ff 40%, #d3e3fb 75%, #b9d0f3 100%);
+/* ---------- Leaving: the sign, card and Start clear away while the rocket flies ---------- */
+.title.is-leaving {
   pointer-events: none;
 }
 
-.title-wipe::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background-image: var(--tex-felt);
-  background-size: 300px;
-  mix-blend-mode: multiply;
-  opacity: 0.25;
+.title.is-leaving .title-sign-area {
+  opacity: 0;
+  transform: translateY(-48px);
 }
 
-.title-wipe::after {
-  content: '';
-  position: absolute;
-  inset: 2vmax;
-  border: 2px dashed rgb(255 255 255 / 0.9);
-  border-radius: 50%;
+.title.is-leaving .title-summary {
+  opacity: 0;
+  transform: translateY(36px);
 }
 
-.title-wipe--fade {
-  transform: scale(2);
+.title.is-leaving .title-actions {
+  opacity: 0;
+  transform: translateY(28px) scale(0.94);
 }
 
 /* ---------- Wide screens (and short landscape phones): summary beside the rocket ---------- */
@@ -377,7 +357,7 @@
       'summary hero'
       '. hero';
     column-gap: clamp(16px, 3vw, 56px);
-    padding: 0 clamp(20px, 4vw, 72px);
+    padding: 0 max(clamp(20px, 4vw, 72px), env(safe-area-inset-right)) 0 max(clamp(20px, 4vw, 72px), env(safe-area-inset-left));
   }
 
   /* Exactly one screen tall and sticky, so Start stays in view if the summary column scrolls. */
@@ -425,6 +405,29 @@
   }
 }
 
+/* Short and narrow (small phones turned sideways): a shorter rocket box keeps Start in view. */
+@media (max-height: 520px) and (max-width: 599px) {
+  .title-stage {
+    height: clamp(110px, 34vh, 260px);
+    min-height: 0;
+  }
+}
+
+/* Narrow phones: the name stays on one line down to 320px. */
+@media (max-width: 480px) {
+  .title-name {
+    font-size: clamp(1.4rem, 0.9rem + 3vw, 1.75rem);
+  }
+
+  .title-role {
+    font-size: 0.95rem;
+  }
+
+  .title-card {
+    padding: 18px 18px 20px;
+  }
+}
+
 /* Key hints mean nothing on touch-only devices. */
 @media (hover: none) and (pointer: coarse) {
   .title-hint,
@@ -441,12 +444,21 @@
       title-swing 4.6s ease-in-out 0.9s infinite;
   }
 
-  .title-summary {
+  /* Entrances sit on inner elements, so the wrappers are free to transition away. */
+  .title-summary > * {
     animation: title-rise 0.6s ease-out 0.35s both;
   }
 
-  .title-actions {
+  .title-actions-inner {
     animation: title-rise 0.6s ease-out 0.5s both;
+  }
+
+  .title-sign-area,
+  .title-summary,
+  .title-actions {
+    transition:
+      opacity 0.3s ease,
+      transform 0.3s cubic-bezier(0.5, 0, 0.75, 0);
   }
 
   .title-start-tag {

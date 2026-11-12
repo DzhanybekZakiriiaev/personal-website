@@ -703,11 +703,15 @@ function Flight({ launching, exiting, onFlightEnd, reduced, rig }: FlightProps) 
     live.current = { launching, exiting, onFlightEnd };
   }, [launching, exiting, onFlightEnd]);
 
+  // Partway through the exit the doll settles into 'cruise', the pilot's resting pose,
+  // so the handover to the pilot layer doesn't pop.
+  const [cruising, setCruising] = useState(false);
   const drifters = useMemo(makeDrifters, []);
   const sim = useRef({
     t: 0,
     launchAt: -1,
     exitAt: -1,
+    cruiseSet: false,
     nextPuff: 0,
     placed: false,
     random: rng(11),
@@ -754,9 +758,14 @@ function Flight({ launching, exiting, onFlightEnd, reduced, rig }: FlightProps) 
       s.p3.copy(camera.position).addScaledVector(V_RAY, along);
       s.dirEnd.set(pose.dir[0], pose.dir[1], pose.dir[2]).normalize();
       const pxPerUnit = vh / (2 * TAN_HALF * depth);
-      const lead = clamp(pose.speed / pxPerUnit / ((3 * 0.35) / EXIT_TIME), 4, 30);
+      // Lead-in length so the arrival speed matches the orbit, capped to stay on screen.
+      const halfW = depth * TAN_HALF * Math.max(0.3, rig.current.aspect);
+      const lead = clamp(pose.speed / pxPerUnit / ((3 * 0.35) / EXIT_TIME), 3, Math.min(30, halfW * 1.2));
       s.p2.copy(s.p3).addScaledVector(s.dirEnd, -lead);
-      s.p1.copy(s.p0).add(V_DIR.set(1.2, 2.2, 1.0));
+      // The first swoop goes up and to the right; on narrow (portrait) screens it stays
+      // mostly upward so the rocket doesn't leave the side of the screen.
+      const wide = clamp(rig.current.aspect / 1.2, 0.15, 1);
+      s.p1.copy(s.p0).add(V_DIR.set(1.2 * wide, 2.2, 1.0));
       orientRocket(s.qEnd, s.dirEnd, pose.bank);
     }
 
@@ -780,6 +789,10 @@ function Flight({ launching, exiting, onFlightEnd, reduced, rig }: FlightProps) 
       Q_MID.slerpQuaternions(s.q0, Q_PATH, smooth(e / 0.25));
       R.quaternion.slerpQuaternions(Q_MID, s.qEnd, smooth((f - 0.72) / 0.28));
       flame = lerp(2.2, CRUISE_FLAME, smooth((f - 0.7) / 0.3));
+      if (f > 0.3 && !s.cruiseSet) {
+        s.cruiseSet = true;
+        setCruising(true);
+      }
       if (f >= 1 && !s.ended) {
         s.ended = true;
         pilotTakeOver();
@@ -893,7 +906,7 @@ function Flight({ launching, exiting, onFlightEnd, reduced, rig }: FlightProps) 
   return (
     <>
       <group ref={rocket} position={[ROCKET_BASE.x, ROCKET_BASE.y, 0]} rotation={[0, 0, PITCH]}>
-        <RocketModel kit={kit} dollPose={launching ? 'control' : 'cockpit'} reduced={reduced} parts={parts} />
+        <RocketModel kit={kit} dollPose={cruising ? 'cruise' : launching ? 'control' : 'cockpit'} reduced={reduced} parts={parts} />
       </group>
 
       <instancedMesh ref={puffMesh} args={[kit.geo.puff, kit.mats.puff, PUFFS]} frustumCulled={false} />

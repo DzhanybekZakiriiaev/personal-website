@@ -361,6 +361,59 @@
   }
 }
 
+/* ---------- Phones ---------- */
+/* Short screens (phones turned sideways): a shorter stage so the text and Back tag
+   are a short scroll away inside the portal. */
+@media (max-height: 520px) {
+  .woi-layout {
+    gap: 14px;
+  }
+
+  .woi-hang {
+    padding-top: 26px;
+  }
+
+  .woi-string--left {
+    height: 38px;
+  }
+
+  .woi-string--right {
+    height: 34px;
+  }
+
+  .woi-stage {
+    height: clamp(190px, 58vh, 260px);
+  }
+}
+
+/* Very narrow portals (small phones): tighter tape and cones so they stay clear of the doll. */
+@container (max-width: 260px) {
+  .woi-tape {
+    top: 18px;
+    right: -52px;
+    width: 170px;
+    height: 24px;
+  }
+
+  .woi-cone {
+    bottom: 8px;
+    width: 30px;
+  }
+
+  .woi-cone--left {
+    left: 4%;
+  }
+
+  .woi-cone--right {
+    right: 4%;
+  }
+
+  .woi-back-tag {
+    padding: 0.55em 1.1em 0.6em;
+    font-size: 1.02rem;
+  }
+}
+
 /* ---------- Motion (only when the visitor hasn't asked for less) ---------- */
 @media (prefers-reduced-motion: no-preference) {
   .woi-hang {

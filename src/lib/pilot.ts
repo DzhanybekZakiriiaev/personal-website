@@ -11,10 +11,21 @@ import { useSyncExternalStore } from 'react';
  *     rect: the planet's sphere box in viewport pixels (like getBoundingClientRect).
  *     mode: 'pod'    orbit the pod's centre planet,
  *           'planet' orbit a section's globe,
- *           'parked' hover at the globe's top right, smaller, behind the page
- *                    (use while a portal pocket is open).
- *     options.duration: ms to fly from the current orbit to the new one
- *                       (default PILOT_RETARGET_MS; pass FLIGHT_MS to match a planet flight).
+ *           'parked' hover at the globe's top right, smaller, behind the page,
+ *           'dive'   rect = the opened badge (the small box at the planet's front spot).
+ *                    The rocket flies to it, circles it once and dives into the
+ *                    pocket's light, shrinking to nothing exactly when `duration` ends
+ *                    (pass the pocket's opening time, about 1000 ms); then it stays hidden.
+ *                    If the previous mode was 'portal', it plays in reverse: the rocket
+ *                    pops out of the badge and circles it until the next target
+ *                    (call 'dive' with the badge when the pocket starts closing, then
+ *                    'planet' with the globe).
+ *           'portal' rect = the anchor inside the opened level page (the element marked
+ *                    data-pilot-anchor). The rocket pops out there and flies a small lazy
+ *                    loop that stays inside that rect, on top of the portal.
+ *     options.duration: ms for the change (default PILOT_RETARGET_MS). Orbit modes: the
+ *                       flight to the new orbit (pass FLIGHT_MS to match a planet flight).
+ *                       'dive': the whole fly, circle and dive.
  *     options.instant: jump there (resize, scroll, first placement).
  *     Calling it again with the same rect and mode is a no-op, so it is cheap to call
  *     on every resize or scroll. setPilotTarget(null) hides the rocket.
@@ -25,11 +36,15 @@ import { useSyncExternalStore } from 'react';
  *     var(--pilot-z-back, 0) at the far left and right of the orbit, where the rocket is
  *     clear of the planet's disc, so the swap never shows. Define those two custom
  *     properties so 'back' sits under the planet layer and 'front' above it.
- *     'parked' always uses back.
- * - Reduced motion: no orbit; the rocket rests at the start pose and retargets instantly.
+ *     'parked' always uses back. 'dive' and 'portal' use var(--pilot-z-portal, 1001),
+ *     above the portal dialog (z-index 1000).
+ * - The rocket always ignores the pointer and stays small (about a fifth of the planet,
+ *   capped by the viewport), so it never blocks a tap.
+ * - Reduced motion: no orbit or loops; the rocket rests at the start pose, 'dive' hides it
+ *   at once, 'portal' shows it still by the anchor, and every change is instant.
  */
 
-export type PilotMode = 'pod' | 'planet' | 'parked';
+export type PilotMode = 'pod' | 'planet' | 'parked' | 'dive' | 'portal';
 
 export interface PilotRect {
   left: number;
@@ -127,13 +142,14 @@ export function usePilotState(): PilotState {
    Geometry, shared by the pilot and the start screen's flight
    ========================================================= */
 
-/** An orbit in viewport pixels: centre, radii, depth (for the 3D heading) and rocket length. */
+/** An orbit in viewport pixels: centre, radii, depth (for the 3D heading), planet size and rocket length. */
 export interface PilotOrbit {
   cx: number;
   cy: number;
   rx: number;
   ry: number;
   depth: number;
+  size: number;
   length: number;
 }
 
@@ -154,15 +170,29 @@ export interface PilotPose {
 
 const OMEGA = (Math.PI * 2) / PILOT_ORBIT_SECONDS;
 
-export function pilotOrbit(rect: PilotRect): PilotOrbit {
+/**
+ * The orbit around a planet box. The rocket scales with the planet (about a fifth of
+ * its size) and is capped by the viewport, so it stays small on phones. The orbit is
+ * pulled in to stay on screen, but never inside the planet's disc plus the rocket's
+ * half width, so the front/back swap at its far ends stays hidden.
+ */
+export function pilotOrbit(rect: PilotRect, viewport?: { width: number; height: number }): PilotOrbit {
+  const vw = viewport?.width ?? (typeof window !== 'undefined' ? window.innerWidth : 1280);
+  const vh = viewport?.height ?? (typeof window !== 'undefined' ? window.innerHeight : 800);
   const d = Math.max(40, Math.min(rect.width, rect.height));
+  const cx = rect.left + rect.width / 2;
+  const length = Math.min(96, Math.min(vw, vh) * 0.2, Math.max(28, d * 0.22));
+  const margin = length * 0.35 + 6;
+  const room = Math.min(cx - margin, vw - cx - margin);
+  const rx = Math.max(d * 0.5 + length * 0.2, Math.min(d * 0.64, room));
   return {
-    cx: rect.left + rect.width / 2,
+    cx,
     cy: rect.top + rect.height / 2,
-    rx: d * 0.64,
+    rx,
     ry: d * 0.16,
     depth: d * 0.5,
-    length: Math.min(110, Math.max(44, d * 0.24)),
+    size: d,
+    length,
   };
 }
 
@@ -185,12 +215,13 @@ export function pilotPoseOnOrbit(o: PilotOrbit, theta: number): PilotPose {
   };
 }
 
-/** Hovering at the planet's top right, a little smaller, nose to the right. */
+/** Hovering at the planet's top right (kept on screen), a little smaller, nose to the right. */
 export function pilotParkedPose(o: PilotOrbit): PilotPose {
-  const d = o.rx / 0.64;
+  const d = o.size;
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
   return {
-    x: o.cx + d * 0.62,
-    y: o.cy - d * 0.42,
+    x: Math.min(o.cx + d * 0.62, vw - o.length * 0.5 - 8),
+    y: Math.max(o.cy - d * 0.42, o.length * 0.4 + 8),
     length: o.length * 0.75,
     dir: [1, 0.06, 0],
     bank: 0,

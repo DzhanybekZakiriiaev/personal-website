@@ -1,7 +1,8 @@
 /* =========================================================
-   Pod carousel: the section planets on a turning ring (PlanetCarousel.tsx)
-   Every size is a fraction of --s, the centre planet's diameter. Each planet box
-   is always --s wide and shrinks with transform: scale, so the centre canvas is crisp.
+   The pod scene: the section planets on a turning ring (PlanetCarousel.tsx).
+   --s is the carousel centre planet's diameter. Every planet box is --box wide (the
+   bigger of --s and the focused size), at the same spot; transforms place and scale
+   them, so a planet growing into focus is never a small canvas blown up.
    ========================================================= */
 .carousel {
   /* The centre planet is vertically centred between the top of the screen and the
@@ -9,7 +10,10 @@
      the back planet (0.7 s above the middle) stays on screen and the centre tag
      (0.66 s below) stays clear of the pod floor (11vh) and the hint bar. */
   --s: max(200px, min(clamp(240px, 33vw, 460px), calc((100vh - 88px) / 1.4), calc(59vh + 24px)));
-  --rx-k: 0.95; /* ring radius in planet sizes (read by the swipe code too) */
+  /* The section page's globe size (levels.css --globe), the size a planet grows to in focus. */
+  --globe-focus: clamp(260px, min(100vh - 404px, 44vw), 560px);
+  --box: max(var(--s), var(--globe-focus));
+  --rx-k: 0.95; /* ring radius in planet sizes */
   --rx: calc(var(--s) * var(--rx-k));
   --ax: 50%; /* centre planet's middle */
   --ay: calc((100vh - 64px) / 2);
@@ -22,6 +26,24 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Read by PlanetCarousel to turn the sizes above into px. */
+.carousel-probe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.carousel-probe--s {
+  width: var(--s);
+}
+
+.carousel-probe--rx {
+  width: var(--rx);
+}
+
 .carousel-ring {
   position: absolute;
   inset: 0;
@@ -32,10 +54,10 @@
 
 .orbit {
   position: absolute;
-  left: calc(var(--ax) - var(--s) / 2);
-  top: calc(var(--ay) - var(--s) / 2);
-  width: var(--s);
-  height: var(--s);
+  left: calc(var(--ax) - var(--box) / 2);
+  top: calc(var(--ay) - var(--box) / 2);
+  width: var(--box);
+  height: var(--box);
   transform-origin: 50% 50%;
   will-change: transform, opacity;
 }
@@ -58,6 +80,7 @@
 }
 
 .orbit-body,
+.orbit-drift,
 .orbit-bob,
 .orbit-planet {
   position: relative;
@@ -81,22 +104,15 @@
   outline-offset: 10px;
 }
 
-/* While its big twin flies to or from the section page, the centre planet hides
-   (a short crossfade at the handover) and holds still so the twin lands exactly on it. */
-.orbit-bob {
-  transition: opacity 0.15s ease;
+/* With a section open, only the focused planet's own badge layer takes the pointer
+   (Globe3D's hit circle switches itself on); the ring itself is out of play. */
+.carousel.is-scene .orbit-planet {
+  pointer-events: none;
 }
 
-.orbit.is-away .orbit-bob {
-  opacity: 0;
-  animation-play-state: paused;
-}
-
-.orbit.is-away .orbit-link:focus-visible .orbit-planet {
-  outline-color: transparent;
-}
-
-/* ---------- Labels: cut-paper tag under each planet ---------- */
+/* ---------- Labels: cut-paper tag under each planet ----------
+   Sizes inside a planet box are in --box units: the box is scaled by --s / --box on
+   the ring, so they come out in --s units on screen. */
 .orbit-labels {
   position: absolute;
   inset: 0;
@@ -106,7 +122,7 @@
 
 .orbit-tag {
   position: absolute;
-  top: calc(100% + var(--s) * 0.04);
+  top: calc(100% + var(--box) * 0.04);
   left: 50%;
   z-index: 2;
   display: block;
@@ -125,7 +141,7 @@
   position: relative;
   display: block;
   padding: 0.2em 0.85em 0.28em;
-  font: 700 max(1.25rem, calc(var(--s) * 0.075)) / 1.1 var(--font-display);
+  font: 700 max(1.5rem, calc(var(--box) * 0.075)) / 1.1 var(--font-display);
   letter-spacing: 0.01em;
   color: var(--ink);
   background-color: #f7a24a;
@@ -192,9 +208,9 @@
   bottom: 93%;
   display: block;
   width: max-content;
-  max-width: calc(var(--s) * 0.56);
+  max-width: calc(var(--box) * 0.56);
   padding: 0.4em 0.85em 0.45em;
-  font: 700 clamp(0.85rem, calc(var(--s) * 0.04), 1.15rem) / 1.25 var(--font-body);
+  font: 700 clamp(1.25rem, calc(var(--box) * 0.04), 1.4rem) / 1.25 var(--font-body);
   font-variant-caps: small-caps;
   letter-spacing: 0.05em;
   color: #fff3d6;
@@ -204,33 +220,51 @@
   box-shadow: 0 8px 18px rgb(0 0 0 / 0.35);
 }
 
-/* ---------- Gentle idle bob ---------- */
+/* ---------- Gentle idle bob; planets waiting in the background drift ---------- */
 @media (prefers-reduced-motion: no-preference) {
   .orbit-bob {
     animation: orbit-bob 3.8s ease-in-out infinite alternate;
+    animation-delay: var(--bob-delay, 0s);
+  }
+
+  .orbit.is-bg .orbit-drift {
+    animation: orbit-drift 9s ease-in-out infinite alternate;
     animation-delay: var(--bob-delay, 0s);
   }
 }
 
 @keyframes orbit-bob {
   from {
-    transform: translateY(calc(var(--s) * -0.014));
+    transform: translateY(calc(var(--box) * -0.014));
   }
   to {
-    transform: translateY(calc(var(--s) * 0.014));
+    transform: translateY(calc(var(--box) * 0.014));
   }
 }
 
-/* ---------- Flight to and from a section page (App.tsx, lib/flight.ts) ---------- */
-/* While a flight runs, the pod is a fixed layer under the section page instead of
-   taking up room in the page, and it takes no pointer input. */
-.pod-layer.is-overlay {
-  position: fixed;
+@keyframes orbit-drift {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(calc(var(--box) * 0.12), calc(var(--box) * -0.08));
+  }
+}
+
+/* ---------- One scene (App.tsx): the pod is always there, a section page on top ---------- */
+.pod-layer {
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   z-index: 0;
-  pointer-events: none;
+}
+
+/* The pilot rocket's two depths (src/lib/pilot.ts): behind the site (still above the
+   paper backdrop, so it shows wherever the page is see-through) and in front of it. */
+:root {
+  --pilot-z-back: 0;
+  --pilot-z-front: 2;
 }
 
 /* The camera moves in towards the planet and to its right: the paper backdrop drifts
@@ -238,11 +272,11 @@
 @media (prefers-reduced-motion: no-preference) {
   .backdrop {
     transform-origin: 50% 45%;
-    transition: transform 0.75s cubic-bezier(0.65, 0, 0.35, 1);
+    transition: transform 0.85s cubic-bezier(0.65, 0, 0.35, 1);
   }
 
   .bg-sticker {
-    transition: scale 0.75s cubic-bezier(0.65, 0, 0.35, 1);
+    transition: scale 0.85s cubic-bezier(0.65, 0, 0.35, 1);
   }
 
   :root[data-view='planet'] .backdrop {
@@ -252,33 +286,45 @@
   :root[data-view='planet'] .bg-sticker {
     scale: 1.12;
   }
-
-  :root[data-flying] .backdrop {
-    will-change: transform;
-  }
-
-  :root[data-flying] .bg-sticker {
-    will-change: scale;
-  }
 }
 
-/* ---------- Small screens: same ring, side planets peek in at the edges ---------- */
+/* ---------- Phones: same ring, side planets peek in at the edges ---------- */
 @media (max-width: 760px) {
   .carousel {
     --s: max(160px, min(70vw, 400px, calc(100vh - 200px)));
+    --globe-focus: min(76vw, 460px, max(220px, 100vh - 96px));
     --rx-k: 0.8;
     --ay: calc(var(--s) * 0.74 + 8px);
     position: relative;
     inset: auto;
     display: block;
     height: calc(var(--s) * 1.44 + 24px);
-    /* full bleed past the pod's 16px padding; side planets are cut at the screen edge */
-    margin: 8px -16px 0;
+    /* full bleed past the pod's side padding; side planets are cut at the screen edge */
+    margin: 8px calc(-1 * max(16px, env(safe-area-inset-right))) 0 calc(-1 * max(16px, env(safe-area-inset-left)));
     overflow-x: clip;
   }
 
   .orbit-note {
     left: 70%;
-    max-width: calc(50vw - var(--s) * 0.2 - 14px);
+    /* the box is scaled by about 70/76 on phones; this keeps the bubble on screen */
+    max-width: calc((50vw - var(--s) * 0.2 - 14px) * 1.08);
+  }
+}
+
+/* ---------- Arriving by rocket from the start screen (TitleScreen sets data-arrival for ~1.6 s) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-arrival='rocket'] .carousel {
+    animation: pod-approach 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@keyframes pod-approach {
+  from {
+    opacity: 0;
+    transform: translateY(4vh) scale(0.72);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

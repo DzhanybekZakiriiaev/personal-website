@@ -279,30 +279,20 @@ a {
   border-radius: 50%;
 }
 
-/* Flying to a section and back (the planets themselves: components/carousel.css):
-   the pod's own chrome fades out as we leave and back in as we arrive. */
+/* With a section open the pod's own chrome steps back (the planets themselves:
+   components/carousel.css), and comes back when we return. */
 .pod-header,
 .pod-floor,
 .pod .hints {
-  transition: opacity 0.25s ease;
+  transition: opacity 0.3s ease 0.25s;
 }
 
-.pod.is-leaving .pod-header,
-.pod.is-leaving .pod-floor,
-.pod.is-leaving .hints {
+.pod.is-focused .pod-header,
+.pod.is-focused .pod-floor,
+.pod.is-focused .hints {
   opacity: 0;
-}
-
-.pod.is-arriving .pod-header,
-.pod.is-arriving .pod-floor,
-.pod.is-arriving .hints {
-  animation: pod-chrome-in 0.45s ease 0.3s both;
-}
-
-@keyframes pod-chrome-in {
-  from {
-    opacity: 0;
-  }
+  transition-delay: 0s;
+  transition-duration: 0.2s;
 }
 
 /* Controller-style hint bar */
@@ -875,8 +865,10 @@ a {
    ========================================================= */
 @media (max-width: 760px) {
   .pod {
-    min-height: auto;
-    padding: 16px 16px 120px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(120px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
     overflow: visible;
     overflow-x: clip; /* side planets peek in at the edges, never a sideways scroll */
   }

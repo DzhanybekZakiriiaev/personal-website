@@ -755,75 +755,84 @@
 }
 
 /* =========================================================
-   Flying in from the pod and back (SectionPage.tsx, lib/flight.ts).
-   lib/flight.ts moves the globe box itself; these bring the rest
-   of the page in during the last part of the flight, and fade it
-   out as the globe heads back.
+   One scene (SectionPage.tsx, PlanetCarousel.tsx): this page sits
+   over the pod scene, whose focused planet is drawn exactly under
+   the see-through globe box. The page lets the pointer through to
+   that planet, except on its own controls, and comes in during the
+   planet's glide (fades out again as it shrinks back).
    ========================================================= */
+.section.section--scene {
+  pointer-events: none;
+}
+
+.section.section--scene .back-bubble,
+.section.section--scene .title-bubble,
+.section.section--scene .levels-tabs,
+.section.section--scene .levels-card-col {
+  pointer-events: auto;
+}
+
+.section.section--scene.is-entering .back-bubble,
+.section.section--scene.is-entering .title-bubble,
+.section.section--scene.is-entering .levels-tabs,
+.section.section--scene.is-entering .levels-card-col,
+.section.section--scene.is-leaving .back-bubble,
+.section.section--scene.is-leaving .title-bubble,
+.section.section--scene.is-leaving .levels-tabs,
+.section.section--scene.is-leaving .levels-card-col {
+  pointer-events: none;
+}
+
 .section .section-header,
+.section .back-bubble,
 .section .levels-tabs,
 .section .levels-card-col,
 .section > .hints {
   transition:
-    opacity 0.3s ease,
-    transform 0.4s cubic-bezier(0.2, 0.7, 0.3, 1);
+    opacity 0.32s ease,
+    transform 0.45s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.section .levels-tabs {
+  transition-delay: 0.05s;
 }
 
 .section .levels-card-col {
-  transition-delay: 0.06s;
+  transition-delay: 0.1s;
 }
 
-.section.is-flying,
-.section.is-leaving,
-.section.is-fading {
-  pointer-events: none;
-}
-
-.section.is-flying .section-header,
-.section.is-flying .levels-tabs,
-.section.is-flying .levels-card-col,
-.section.is-flying > .hints,
+.section.is-entering .section-header,
+.section.is-entering .back-bubble,
+.section.is-entering .levels-tabs,
+.section.is-entering .levels-card-col,
+.section.is-entering > .hints,
 .section.is-leaving .section-header,
+.section.is-leaving .back-bubble,
 .section.is-leaving .levels-tabs,
 .section.is-leaving .levels-card-col,
 .section.is-leaving > .hints {
   opacity: 0;
 }
 
-.section.is-flying .section-header {
+.section.is-entering .section-header {
   transform: translateY(-14px);
 }
 
-.section.is-flying .levels-tabs {
+.section.is-entering .levels-tabs {
   transform: translateY(16px);
 }
 
-.section.is-flying .levels-card-col {
+.section.is-entering .levels-card-col {
   transform: translateY(24px);
 }
 
 .section.is-leaving .section-header,
+.section.is-leaving .back-bubble,
 .section.is-leaving .levels-tabs,
 .section.is-leaving .levels-card-col,
 .section.is-leaving > .hints {
   transition-duration: 0.18s;
   transition-delay: 0s;
-}
-
-/* No flight (reduced motion, a direct link, or no pod to fly to): a quick crossfade. */
-.section.section--fade-in {
-  animation: section-fade-in 0.3s ease both;
-}
-
-.section.is-fading {
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-@keyframes section-fade-in {
-  from {
-    opacity: 0;
-  }
 }
 
 /* The level's art on the portal card (rendered outside .levels, so it has its own wrapper). */
@@ -905,8 +914,24 @@
    Small screens: globe (bubble on it), tabs, then the card
    ========================================================= */
 @media (max-width: 759.98px) {
+  /* Phones: the planet glides to the top, the page flows under it and scrolls.
+     The globe size matches the scene's --globe-focus (carousel.css). */
+  .section.section--scene {
+    padding: calc(64px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+      calc(120px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    overflow-x: clip;
+  }
+
+  /* The way back stays in reach while the page scrolls. */
+  .section.section--scene .back-bubble {
+    position: fixed;
+    top: max(10px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
+    z-index: 20;
+  }
+
   .levels .levels-layout {
-    --globe: min(86vw, 100%, 600px);
+    --globe: min(76vw, 100%, 460px, max(220px, 100vh - 96px));
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       'world'
@@ -938,8 +963,9 @@
     font-size: 1rem;
   }
 
-  .levels .levels-bubble-meta {
-    font-size: 0.8rem;
+  .levels .levels-bubble-meta,
+  .levels .levels-card-meta {
+    font-size: 1rem;
   }
 
   .levels .levels-card-col {

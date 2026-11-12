@@ -2,14 +2,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { AnimatePresence, MotionConfig } from 'motion/react';
 import { sections } from './content';
 import { useHashRoute, type Route } from './lib/route';
-import { POD_LEAVE_MS, clearFlight, hasPendingFlight } from './lib/flight';
 import { SvgDefs } from './components/SvgDefs';
 import { Backdrop } from './components/Backdrop';
 import { PodMenu } from './components/PodMenu';
-import type { PodFlight } from './components/PlanetCarousel';
 import { SectionPage } from './components/SectionPage';
 import { LoadingScreen } from './components/LoadingScreen';
 import { TitleScreen } from './components/TitleScreen';
+import { Pilot } from './components/Pilot';
 import { levelsFor } from './pages/levels';
 import { preloadGlobes } from './three/Globe3D';
 import type { GlobeBadge, PreloadRequest } from './three/spec';
@@ -17,24 +16,21 @@ import type { GlobeBadge, PreloadRequest } from './three/spec';
 const START_INDEX = 1; // the middle planet (Projects) starts selected
 const MIN_LOADING_MS = 1400; // long enough to enjoy the loading screen, short enough not to annoy
 
-// Every planet (small pod versions and big section versions with their badges),
-// so nothing is painted after the loading screen goes away.
+// Every planet with its level badges, so nothing is painted after the loading screen
+// goes away. (The pod's planets are the same 'hero' planets, shown smaller.)
 function allPlanets(): PreloadRequest[] {
-  return [
-    ...sections.map((s) => ({ kind: s.planet, detail: 'pod' as const })),
-    ...sections.map((s) => ({
-      kind: s.planet,
-      detail: 'hero' as const,
-      badges: levelsFor(s.id).map<GlobeBadge>((it) => ({
-        id: it.id,
-        icon: it.icon,
-        color: it.color,
-        style: it.badgeStyle ?? 'sticker',
-        title: it.title,
-        logo: it.logo,
-      })),
+  return sections.map((s) => ({
+    kind: s.planet,
+    detail: 'hero' as const,
+    badges: levelsFor(s.id).map<GlobeBadge>((it) => ({
+      id: it.id,
+      icon: it.icon,
+      color: it.color,
+      style: it.badgeStyle ?? 'sticker',
+      title: it.title,
+      logo: it.logo,
     })),
-  ];
+  }));
 }
 
 function usePreload(): { ready: boolean; progress: number } {
@@ -81,71 +77,32 @@ function usePhase(ready: boolean, route: Route): { phase: Phase; start: () => vo
   return { phase, start };
 }
 
-/**
- * The pod stays mounted while a section is open (its four 3D planets aren't rebuilt
- * on every return). Around a flight it stays on screen as a fixed layer under the
- * section page:
- *   leaving:  just opened a section from the pod; its other planets fly off.
- *   arriving: back from a section; its planets fly in while the section flies its
- *             globe home, until the section page is gone.
- */
-type PodMode = 'shown' | 'leaving' | 'arriving' | 'hidden';
-
-function usePodMode(route: Route) {
-  const [mode, setMode] = useState<PodMode>(route === 'pod' ? 'shown' : 'hidden');
-  const [top, setTop] = useState(0);
-  const [lastRoute, setLastRoute] = useState(route);
-
-  // Decided while rendering the new route, so the pod never blinks out for a frame.
-  if (route !== lastRoute) {
-    setLastRoute(route);
-    if (route === 'pod') {
-      clearFlight();
-      setMode('arriving');
-    } else if (lastRoute === 'pod') {
-      const flying = hasPendingFlight();
-      setMode(flying ? 'leaving' : 'hidden');
-      setTop(flying ? -window.scrollY : 0); // keep the pod where it was while the page scrolls to the top
-    }
-  }
-
-  useEffect(() => {
-    if (mode !== 'leaving') return undefined;
-    const timer = window.setTimeout(() => setMode('hidden'), POD_LEAVE_MS);
-    return () => window.clearTimeout(timer);
-  }, [mode]);
-
-  const modeRef = useRef(mode);
-  modeRef.current = mode;
-  const onSectionGone = useCallback(() => {
-    if (modeRef.current !== 'arriving') return;
-    window.scrollTo(0, 0);
-    setMode('shown');
-  }, []);
-
-  const flight: PodFlight = mode === 'leaving' ? 'leaving' : mode === 'arriving' ? 'arriving' : null;
-  return { mode, top, flight, onSectionGone };
-}
-
 export default function App() {
   const route = useHashRoute();
   const { ready, progress } = usePreload();
   const { phase, start } = usePhase(ready, route);
-  const pod = usePodMode(route);
   const [selected, setSelected] = useState(() => {
     const index = sections.findIndex((s) => s.id === route);
     return index >= 0 ? index : START_INDEX;
   });
   const siteShown = phase === 'site';
 
+  // One scene: the pod is always there; a section route focuses one of its planets.
+  const focusIndex = route === 'pod' ? null : sections.findIndex((s) => s.id === route);
+  const focus = focusIndex === null || focusIndex < 0 ? null : focusIndex;
+
   // Remember whether we came back from a section, so focus returns to its planet.
   const previousRoute = useRef(route);
   const cameBack = previousRoute.current !== 'pod' && route === 'pod';
+  // A section opened straight from its address starts already focused (no glide).
+  const deepLink = useRef(route !== 'pod');
 
   useEffect(() => {
     if (route !== 'pod') {
       const index = sections.findIndex((s) => s.id === route);
       if (index >= 0) setSelected(index);
+    } else {
+      deepLink.current = false;
     }
     previousRoute.current = route;
   }, [route]);
@@ -160,23 +117,20 @@ export default function App() {
       <SvgDefs />
       <Backdrop />
       <div className="app-content" inert={!siteShown} data-hidden={siteShown ? undefined : true}>
-        <div
-          className={`pod-layer${pod.flight ? ' is-overlay' : ''}`}
-          hidden={pod.mode === 'hidden'}
-          style={pod.mode === 'leaving' && pod.top ? { top: pod.top } : undefined}
-        >
+        <div className="pod-layer">
           <PodMenu
             active={siteShown && route === 'pod'}
-            flight={pod.flight}
-            selected={selected}
+            focus={focus}
+            selected={focus ?? selected}
             onSelect={setSelected}
             restoreFocus={cameBack}
           />
         </div>
-        <AnimatePresence mode="wait" onExitComplete={pod.onSectionGone}>
-          {route !== 'pod' ? <SectionPage key={route} id={route} /> : null}
+        <AnimatePresence mode="wait">
+          {route !== 'pod' ? <SectionPage key={route} id={route} instant={deepLink.current} /> : null}
         </AnimatePresence>
       </div>
+      {siteShown ? <Pilot /> : null}
       <AnimatePresence>{phase === 'title' ? <TitleScreen key="title" onStart={start} /> : null}</AnimatePresence>
       <AnimatePresence>{ready ? null : <LoadingScreen key="loading" progress={progress} />}</AnimatePresence>
     </MotionConfig>

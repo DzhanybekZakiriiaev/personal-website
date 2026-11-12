@@ -1,6 +1,9 @@
 /* =========================================================
-   Level portal: warm light pours out of the pocket on the
-   planet, then a crafted "level page" rises out of it
+   Level portal: warm light pours out of the planet's zipper
+   pocket, then the inside of a denim pocket rises out of it,
+   with the level's details pinned in as craft pieces.
+   All art here is original CSS/SVG; textures are the site's
+   CC0 photos.
    ========================================================= */
 .zp-root {
   position: fixed;
@@ -8,9 +11,8 @@
   z-index: 1000;
   display: grid;
   place-items: center;
-  /* Room above for the polaroid and below for the Close tag, which stick out
-     of the page. Keep in sync with PAD_TOP / PAD_BOTTOM in ZipperPortal.tsx. */
-  padding: 64px 16px 40px;
+  /* Keep in sync with PAD_TOP / PAD_BOTTOM in ZipperPortal.tsx. */
+  padding: 36px 24px 44px;
   overflow: hidden;
   color: var(--ink);
   font-family: var(--font-body);
@@ -28,31 +30,29 @@
   inset: 0;
 }
 
-/* paper grain over the haze, so it sits in the same paper world as the page */
 .zp-light::after {
   content: '';
   position: absolute;
   inset: 0;
   background-image: var(--paper-grain, none);
-  opacity: 0.6;
+  opacity: 0.5;
   pointer-events: none;
 }
 
-/* Sized in JS to reach past the farthest corner: a warm white-gold core at the
-   pocket that settles into a soft sky-blue haze over the whole screen. */
+/* Sized in JS to reach past the farthest corner: white core, gold, then a warm
+   white haze that lets a little of the denim behind show through. */
 .zp-glow {
   position: absolute;
   border-radius: 50%;
   background: radial-gradient(
     circle closest-side,
     #fffef6 0%,
-    #fff3cc 7%,
-    rgb(255 226 150 / 0.95) 14%,
-    rgb(250 240 222 / 0.93) 24%,
-    rgb(214 230 252 / 0.9) 42%,
-    rgb(168 202 246 / 0.88) 62%,
-    rgb(124 170 234 / 0.86) 80%,
-    rgb(110 160 228 / 0) 100%
+    #fff4d0 9%,
+    rgb(255 228 150 / 0.95) 18%,
+    rgb(255 240 206 / 0.9) 34%,
+    rgb(255 232 186 / 0.85) 56%,
+    rgb(250 218 160 / 0.8) 80%,
+    rgb(250 218 160 / 0) 100%
   );
   will-change: transform, opacity;
 }
@@ -68,25 +68,23 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  /* gold and white ray sets with different spacing, so the pattern looks irregular */
   background:
     repeating-conic-gradient(
       from 0deg,
-      rgb(255 208 106 / 0) 0deg,
-      rgb(255 208 106 / 0.36) 6deg,
-      rgb(255 208 106 / 0) 12deg,
-      rgb(255 208 106 / 0) 30deg
+      rgb(255 200 90 / 0) 0deg,
+      rgb(255 200 90 / 0.34) 6deg,
+      rgb(255 200 90 / 0) 12deg,
+      rgb(255 200 90 / 0) 30deg
     ),
     repeating-conic-gradient(
       from 13deg,
       rgb(255 255 255 / 0) 0deg,
-      rgb(255 255 255 / 0.5) 4deg,
+      rgb(255 255 255 / 0.55) 4deg,
       rgb(255 255 255 / 0) 8deg,
       rgb(255 255 255 / 0) 47deg
     );
 }
 
-/* warm glow right behind the page */
 .zp-halo {
   position: absolute;
   left: 50%;
@@ -98,8 +96,8 @@
   background: radial-gradient(
     circle closest-side,
     rgb(255 244 212 / 0.7),
-    rgb(255 226 156 / 0.32) 28%,
-    rgb(255 226 156 / 0) 62%
+    rgb(255 222 140 / 0.32) 28%,
+    rgb(255 222 140 / 0) 62%
   );
 }
 
@@ -115,51 +113,17 @@
   opacity: 0;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .zp-rays-spin {
-    animation: zp-spin 90s linear infinite;
-  }
-
-  .zp-mote {
-    animation: zp-drift var(--zp-dur, 8s) ease-in-out var(--zp-delay, 0s) infinite;
-  }
-}
-
-@keyframes zp-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes zp-drift {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 0, 0) scale(0.6);
-  }
-  25% {
-    opacity: 0.95;
-  }
-  75% {
-    opacity: 0.7;
-  }
-  100% {
-    opacity: 0;
-    transform: translate3d(var(--zp-dx, 0), var(--zp-dy, -60px), 0) scale(1.1);
-  }
-}
-
 /* =========================================================
-   The level page
+   The dialog and the denim pocket
    ========================================================= */
 .zp-dialog {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  /* a text column of about 66ch plus the scroll padding */
-  width: min(100%, calc(66ch + 60px));
-  max-height: calc(100vh - 104px);
-  max-height: calc(100dvh - 104px);
+  width: min(100%, calc(64ch + 120px));
+  max-height: calc(100vh - 80px);
+  max-height: calc(100dvh - 80px);
   font-size: 1.0625rem;
 }
 
@@ -167,178 +131,334 @@
   outline: none;
 }
 
-.zp-sheet {
+.zp-pocket {
   --zp-accent-deep: color-mix(in srgb, var(--zp-accent) 78%, #1b1b24);
-  --zp-accent-tint: color-mix(in srgb, var(--zp-accent) 22%, #fffaf0);
-  --zp-accent-wash: color-mix(in srgb, var(--zp-accent) 30%, transparent);
-  --zp-thread: rgb(110 78 36 / 0.3);
+  --zp-accent-tint: color-mix(in srgb, var(--zp-accent) 24%, #fffaf0);
+  --zp-accent-felt: color-mix(in srgb, var(--zp-accent) 14%, #f8eedb);
+  --zp-thread-a: color-mix(in srgb, var(--zp-accent) 50%, #1b1b24);
+  --zp-thread-b: color-mix(in srgb, var(--zp-accent) 36%, #1b1b24);
+  --zp-satin-b: color-mix(in srgb, var(--zp-accent) 68%, #fff);
+  --zp-gold: #e8a640;
+  --zp-brass-hi: #fff0bf;
+  --zp-brass: #d9a93f;
+  --zp-brass-lo: #7d5a14;
+  --zp-ring: 0 0 0 3px var(--ink);
   position: relative;
-  isolation: isolate; /* keeps the back sheet and page under the content, above the light */
+  isolation: isolate; /* the denim layer sits under the content, above the light */
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
-  padding-bottom: 30px; /* the Close tag hangs over this strip */
-  color: var(--ink);
+  /* Fallback colour for any text that lands straight on the denim (light on dark). */
+  color: #fff8ec;
 }
 
-/* A felt sheet in the level's colour, peeking out at an angle */
-.zp-back {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  background-color: var(--zp-accent);
-  background-image: linear-gradient(160deg, rgb(255 255 255 / 0.16), rgb(0 0 0 / 0.22)), var(--tex-felt);
-  background-size: auto, 240px;
-  background-blend-mode: normal, multiply;
-  border-radius: 22px;
-  box-shadow: 0 16px 34px rgb(12 34 80 / 0.35);
-  transform: rotate(2.4deg) translate(4px, 6px);
-}
-
-/* Linen page: weave lines over a soft burlap grain, kept light for reading */
-.zp-page {
+/* Denim: the site's denim photo, a touch darker so light text on it stays AA,
+   with warm light spilling from the pocket mouth and a shadow under the zipper. */
+.zp-denim {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background-color: #f7efdb;
+  background-color: #1e3550;
   background-image:
-    linear-gradient(rgb(250 244 228 / 0.62), rgb(250 244 228 / 0.62)),
-    repeating-linear-gradient(0deg, rgb(120 90 45 / 0.05) 0 1px, transparent 1px 4px),
-    repeating-linear-gradient(90deg, rgb(120 90 45 / 0.045) 0 1px, transparent 1px 4px),
-    var(--tex-burlap);
+    radial-gradient(ellipse 60% 110px at 50% 0, rgb(255 210 130 / 0.32), transparent 72%),
+    linear-gradient(rgb(4 10 24 / 0.5), transparent 30px),
+    linear-gradient(rgb(8 22 44 / 0.3), rgb(8 22 44 / 0.3)),
+    url('../../assets/textures/denim-cloth.jpg');
   background-size:
     auto,
     auto,
     auto,
-    300px;
-  background-blend-mode: normal, normal, normal, soft-light;
-  border-radius: 18px;
+    420px;
+  border-radius: 20px 20px 30px 30px;
   box-shadow:
-    inset 0 0 0 2px rgb(255 255 255 / 0.4),
-    0 6px 0 rgb(60 40 15 / 0.28),
-    0 22px 40px rgb(12 34 80 / 0.32);
+    inset 0 0 0 4px rgb(255 255 255 / 0.05),
+    inset 0 -16px 26px rgb(0 0 0 / 0.28),
+    0 0 0 1px rgb(0 0 0 / 0.35),
+    0 20px 44px rgb(20 12 0 / 0.45);
 }
 
-/* Hand-stitched border in the level's colour (long, round-ended stitches) */
-.zp-stitch {
+/* Double gold topstitching along the sides and bottom (two parallel running stitches) */
+.zp-ts {
   position: absolute;
-  top: 9px;
-  left: 9px;
-  width: calc(100% - 21px);
-  height: calc(100% - 21px);
   overflow: visible;
 }
 
-.zp-stitch rect {
+.zp-ts--outer {
+  top: 30px;
+  left: 9px;
+  width: calc(100% - 20px);
+  height: calc(100% - 41px);
+}
+
+.zp-ts--inner {
+  top: 36px;
+  left: 15px;
+  width: calc(100% - 32px);
+  height: calc(100% - 53px);
+}
+
+.zp-ts rect {
   fill: none;
-  stroke: var(--zp-accent-deep);
-  stroke-width: 2.5px;
-  stroke-dasharray: 9 6;
+  stroke: var(--zp-gold);
+  stroke-width: 2.2px;
+  stroke-dasharray: 7 5;
   stroke-linecap: round;
-  opacity: 0.75;
 }
 
-/* Masking tape on two corners */
-.zp-tape,
-.zp-polaroid-tape {
+/* Frayed threads along the bottom edge */
+.zp-fray {
   position: absolute;
-  background-color: rgb(241 228 190 / 0.9);
-  background-image: repeating-linear-gradient(90deg, rgb(255 255 255 / 0.14) 0 2px, transparent 2px 5px);
-  clip-path: polygon(0 12%, 4% 0, 96% 8%, 100% 0, 97% 50%, 100% 100%, 3% 92%, 0 100%, 3% 50%);
+  left: 22px;
+  right: 22px;
+  bottom: -11px;
+  height: 14px;
+  background:
+    repeating-linear-gradient(90deg, rgb(206 222 238 / 0.85) 0 1px, transparent 1px 4px) 0 0 / 100% 9px no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 2px, rgb(150 182 214 / 0.8) 2px 3.5px, transparent 3.5px 9px) 0 0 / 100%
+      14px no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 5px, rgb(232 240 248 / 0.7) 5px 6px, transparent 6px 13px) 0 0 / 100%
+      12px no-repeat;
+  -webkit-mask-image: linear-gradient(#000 20%, transparent);
+  mask-image: linear-gradient(#000 20%, transparent);
 }
 
-.zp-tape {
-  z-index: 2;
-  width: 92px;
-  height: 26px;
+/* Copper rivets */
+.zp-rivet {
+  position: absolute;
+  z-index: 4;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #ffd8b0 0 12%, #db8e52 32%, #a4521f 64%, #5a280b 100%);
+  box-shadow:
+    0 0 0 2px rgb(50 22 4 / 0.35),
+    0 2px 2px rgb(0 0 0 / 0.5),
+    inset 0 -1px 1px rgb(0 0 0 / 0.4);
 }
 
-.zp-tape--tl {
-  top: -4px;
-  left: -26px;
-  transform: rotate(-38deg);
+.zp-rivet::after {
+  content: '';
+  position: absolute;
+  inset: 4.5px;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 1px 1px rgb(0 0 0 / 0.5),
+    0 1px 0 rgb(255 220 180 / 0.4);
 }
 
-.zp-tape--bl {
-  bottom: 2px;
-  left: -26px;
-  transform: rotate(36deg);
+.zp-rivet--tl {
+  top: 8px;
+  left: 4px;
 }
 
-/* Tan cardboard label strip with the level's kind */
-.zp-label {
+.zp-rivet--tr {
+  top: 8px;
+  right: 4px;
+}
+
+.zp-rivet--bl {
+  bottom: 10px;
+  left: 10px;
+}
+
+.zp-rivet--br {
+  bottom: 10px;
+  right: 10px;
+}
+
+/* Brass zipper along the top edge, with its pull dangling at the left end */
+.zp-zipper {
+  position: absolute;
+  top: 6px;
+  left: 20px;
+  right: 20px;
+  z-index: 3;
+  height: 20px;
+}
+
+.zp-zipper-teeth {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(90deg, var(--zp-gold) 0 6px, transparent 6px 10px) 0 calc(100% - 1px) / 100% 2px
+      no-repeat,
+    repeating-linear-gradient(
+        90deg,
+        var(--zp-brass-hi) 0 1.5px,
+        var(--zp-brass) 1.5px 4px,
+        var(--zp-brass-lo) 4px 5.5px,
+        transparent 5.5px 11px
+      )
+      0 4px / 100% 5.5px no-repeat,
+    repeating-linear-gradient(
+        90deg,
+        transparent 0 5.5px,
+        var(--zp-brass-hi) 5.5px 7px,
+        var(--zp-brass) 7px 9.5px,
+        var(--zp-brass-lo) 9.5px 11px
+      )
+      0 9.5px / 100% 5.5px no-repeat,
+    linear-gradient(#24365a, #142038);
+  box-shadow:
+    0 2px 0 rgb(0 0 0 / 0.35),
+    inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+
+.zp-zipper-pull {
+  position: absolute;
+  top: -5px;
+  left: -8px;
+  width: 30px;
+  height: 60px;
+  transform: rotate(7deg);
+  transform-origin: 50% 7px;
+  filter: drop-shadow(0 3px 2px rgb(0 0 0 / 0.5));
+}
+
+.zp-zipper-pull svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Leather label carrying the level's kind */
+.zp-bar {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  display: flex;
   flex: none;
-  margin: 18px -10px 0;
-  padding: 7px 26px 8px;
+  align-items: center;
+  min-height: 84px;
+  padding: 34px 152px 6px 54px;
+}
+
+.zp-leather {
+  max-width: 100%;
+  margin: 0;
+  padding: 8px 16px 9px;
   font-family: var(--font-display);
   font-size: 1.05rem;
   font-weight: 700;
   line-height: 1.15;
-  letter-spacing: 0.02em;
-  color: #2a1708;
-  background-color: #c99a62;
-  background-image: var(--tex-cardboard);
-  background-size: 260px;
-  background-blend-mode: soft-light;
+  letter-spacing: 0.04em;
+  color: #fbe9cc;
+  background-color: #8a552c;
+  background-image: radial-gradient(ellipse at 30% 20%, rgb(255 220 170 / 0.22), transparent 60%), var(--tex-cardboard);
+  background-size: auto, 200px;
+  background-blend-mode: normal, multiply;
+  border-radius: 10px 13px 10px 14px;
+  outline: 2px dashed rgb(251 233 204 / 0.65);
+  outline-offset: -6px;
   box-shadow:
-    inset 0 2px 0 rgb(255 255 255 / 0.25),
-    inset 0 -2px 0 rgb(60 35 10 / 0.2);
-  clip-path: polygon(0 10%, 2% 0, 97% 6%, 100% 0, 99% 90%, 100% 100%, 3% 95%, 0 100%);
-  transform: rotate(-0.6deg);
+    inset 0 0 0 2px rgb(60 30 10 / 0.5),
+    0 3px 0 rgb(0 0 0 / 0.3),
+    0 6px 10px rgb(0 0 0 / 0.25);
+  text-shadow:
+    0 -1px 0 rgb(0 0 0 / 0.5),
+    0 1px 0 rgb(255 230 190 / 0.2);
+  transform: rotate(-2deg);
+  overflow-wrap: anywhere;
 }
 
-.zp-sheet--art .zp-label {
-  padding-right: 156px; /* clear of the polaroid */
+/* The rocket's loop spot: top corner opposite the Close tag, over decoration only */
+.zp-pilot-anchor {
+  position: absolute;
+  top: 28px;
+  left: 10px;
+  z-index: 0;
+  width: 160px;
+  height: 110px;
+  pointer-events: none;
 }
 
+/* The scrolling stack of pieces */
 .zp-scroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 20px 30px 18px;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 30px 36px;
   scrollbar-width: thin;
-  scrollbar-color: rgb(110 78 36 / 0.45) transparent;
-}
-
-.zp-sheet--art .zp-scroll {
-  padding-top: 38px; /* the polaroid hangs down to here */
+  scrollbar-color: rgb(232 166 64 / 0.7) transparent;
 }
 
 .zp-scroll:focus {
   outline: none;
 }
 
+/* =========================================================
+   Head: embroidered title patch, woven ribbon, felt badge
+   ========================================================= */
 .zp-head {
-  margin-bottom: 22px;
-  padding: 4px 0 20px;
-  border-bottom: 2px dashed var(--zp-thread);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'patch'
+    'ribbon';
+  justify-items: start;
+  gap: 18px;
+  margin-bottom: 28px;
+  padding: 10px 6px 0;
 }
 
-/* Title: a big die-cut sticker */
+.zp-pocket--art .zp-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'patch art'
+    'ribbon art';
+  column-gap: 18px;
+}
+
+/* Embroidered patch: twill centre, satin-stitch border in the level's colour, merrowed edge */
 .zp-title {
-  width: fit-content;
-  max-width: calc(100% - 10px);
-  margin: 0 0 0 5px;
-  padding: 0.12em 0.55em 0.18em;
+  grid-area: patch;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.3em 0.75em 0.36em;
   font-family: var(--font-display);
-  font-size: clamp(1.55rem, 1.1rem + 2.2vw, 2.45rem);
+  font-size: clamp(1.6rem, 1.15rem + 2vw, 2.4rem);
   font-weight: 700;
   line-height: 1.1;
-  color: var(--ink);
-  background: #fff;
-  border: 3px solid var(--zp-accent);
-  border-radius: 16px;
+  color: var(--zp-thread-a);
+  background:
+    repeating-linear-gradient(45deg, rgb(120 90 45 / 0.05) 0 2px, transparent 2px 4px) padding-box,
+    linear-gradient(#fdf6e6, #fdf6e6) padding-box,
+    repeating-linear-gradient(-55deg, var(--zp-accent) 0 2px, var(--zp-satin-b) 2px 3.2px) border-box;
+  border: 7px solid transparent;
+  border-radius: 22px;
   box-shadow:
-    0 0 0 5px #fff,
-    0 0 0 6.5px rgb(110 78 36 / 0.2),
-    0 8px 10px rgb(60 40 15 / 0.25);
-  transform: rotate(-1.8deg);
+    0 0 0 2px var(--zp-accent-deep),
+    0 5px 0 2px rgb(0 0 0 / 0.28),
+    0 12px 20px rgb(0 0 0 / 0.32);
+  transform: rotate(-2deg);
   overflow-wrap: anywhere;
+}
+
+/* text-texture.css gives .zp-title a paper-letter shadow; the patch uses thread letters instead */
+.zp-pocket .zp-title {
+  text-shadow: none;
+}
+
+.zp-title-text {
+  display: block;
+  text-shadow: none;
+}
+
+/* Thread-textured 3D letters */
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .zp-title-text {
+    color: transparent;
+    background: repeating-linear-gradient(-60deg, var(--zp-thread-a) 0 1.6px, var(--zp-thread-b) 1.6px 3.2px);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 -1px 0 rgb(255 255 255 / 0.7)) drop-shadow(0 1px 0 var(--zp-thread-b))
+      drop-shadow(0 1px 0 rgb(0 0 0 / 0.35)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.22));
+  }
 }
 
 .zp-title:focus:not(:focus-visible) {
@@ -346,94 +466,95 @@
 }
 
 .zp-title:focus-visible {
-  outline: 3px solid var(--pink);
-  outline-offset: 9px;
+  outline: 3px solid var(--focus);
+  outline-offset: 5px;
 }
 
-/* Meta line: a small ribbon with notched ends and stitching along both edges */
+/* Woven ribbon label: tinted weave, sewn-down folded ends */
 .zp-ribbon {
-  width: fit-content;
-  max-width: calc(100% - 12px);
-  margin: 18px 0 0 12px;
-  padding: 6px 26px 7px;
-  font-size: 0.95rem;
+  grid-area: ribbon;
+  position: relative;
+  max-width: 100%;
+  margin: 0 0 0 12px;
+  padding: 7px 28px 8px;
+  font-size: 1rem;
   font-weight: 700;
   line-height: 1.35;
   color: var(--ink);
-  background:
-    repeating-linear-gradient(90deg, var(--zp-accent-deep) 0 6px, transparent 6px 10px) 16px 3px / calc(100% - 32px)
-      1.5px no-repeat,
-    repeating-linear-gradient(90deg, var(--zp-accent-deep) 0 6px, transparent 6px 10px) 16px calc(100% - 3px) /
-      calc(100% - 32px) 1.5px no-repeat,
-    var(--zp-accent-tint);
-  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 50%, 100% 100%, 0 100%, 12px 50%);
-  transform: rotate(0.6deg);
-}
-
-/* The level's badge art on a polaroid, taped to the top corner */
-.zp-polaroid {
-  position: absolute;
-  top: -58px;
-  right: -14px;
-  z-index: 3;
-  width: 128px;
-  padding: 9px 9px 26px;
-  background: #fff;
-  border-radius: 3px;
+  background-color: var(--zp-accent-tint);
+  background-image:
+    linear-gradient(90deg, rgb(0 0 0 / 0.14) 0 7px, transparent 7px calc(100% - 7px), rgb(0 0 0 / 0.14) calc(100% - 7px)),
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 0.05) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.3) 0 1px, transparent 1px 2.5px);
   box-shadow:
-    0 3px 0 rgb(0 0 0 / 0.12),
-    0 10px 18px rgb(20 30 60 / 0.3);
-  transform: rotate(5deg) scale(var(--zp-pol-scale, 1));
-  transform-origin: 100% 0;
+    inset 0 2px 0 rgb(255 255 255 / 0.5),
+    inset 0 -2px 0 rgb(0 0 0 / 0.08),
+    0 3px 0 rgb(0 0 0 / 0.25),
+    0 6px 10px rgb(0 0 0 / 0.2);
+  transform: rotate(1deg);
+  overflow-wrap: anywhere;
 }
 
-.zp-photo {
+.zp-ribbon::before,
+.zp-ribbon::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-left: 2px dashed var(--zp-accent-deep);
+}
+
+.zp-ribbon::before {
+  left: 12px;
+}
+
+.zp-ribbon::after {
+  right: 12px;
+}
+
+/* The level's badge art on a round felt patch, sewn on at an angle */
+.zp-art {
+  grid-area: art;
+  position: relative;
   display: grid;
   place-items: center;
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  background-color: #efe6d2;
-  background-color: color-mix(in srgb, var(--zp-accent) 24%, #f6efe0);
-  background-image: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.5), transparent 60%), var(--tex-felt);
-  background-size:
-    auto,
-    180px;
+  width: 124px;
+  height: 124px;
+  background-color: #fbf6ec;
+  background-image: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.6), transparent 60%), var(--tex-felt);
+  background-size: auto, 160px;
   background-blend-mode: normal, soft-light;
+  border-radius: 50%;
   box-shadow:
-    inset 0 0 0 1px rgb(0 0 0 / 0.1),
-    inset 0 2px 6px rgb(0 0 0 / 0.18);
+    0 0 0 4px var(--zp-accent),
+    0 0 0 6px var(--zp-accent-deep),
+    0 6px 0 4px rgb(0 0 0 / 0.25),
+    0 12px 20px rgb(0 0 0 / 0.3);
+  transform: rotate(6deg);
 }
 
-.zp-photo > * {
-  max-width: 92%;
-  max-height: 92%;
+.zp-art::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 2px dashed var(--zp-accent-deep);
+  border-radius: 50%;
+  opacity: 0.6;
+  pointer-events: none;
 }
 
-.zp-polaroid-tape {
-  top: -9px;
-  z-index: 1;
-  width: 50px;
-  height: 18px;
-}
-
-.zp-polaroid-tape--l {
-  left: -15px;
-  transform: rotate(-32deg);
-}
-
-.zp-polaroid-tape--r {
-  right: -15px;
-  transform: rotate(28deg);
+.zp-art > * {
+  transform: scale(var(--zp-art-scale, 0.92));
 }
 
 /* =========================================================
-   Close: a cut-paper tag with an Esc key cap
+   Close: a cut-paper tag with an Esc key cap, top right
    ========================================================= */
 .zp-close {
   position: absolute;
-  right: 24px;
-  bottom: -26px;
-  z-index: 3;
+  top: 30px;
+  right: 18px;
+  z-index: 5;
   isolation: isolate;
   display: inline-flex;
   align-items: center;
@@ -448,8 +569,8 @@
   background: none;
   border: 0;
   cursor: pointer;
-  filter: drop-shadow(0 4px 0 rgb(60 40 15 / 0.35));
-  transform: rotate(-2.5deg);
+  filter: drop-shadow(0 4px 0 rgb(0 0 0 / 0.35));
+  transform: rotate(2.5deg);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -471,7 +592,7 @@
   left: 5px;
   width: calc(100% - 10px);
   height: calc(100% - 10px);
-  opacity: 0.35;
+  opacity: 0.45;
 }
 
 .zp-close-paper {
@@ -489,7 +610,7 @@
   stroke-linejoin: round;
 }
 
-/* the tag's punched hole with a paper reinforcement ring */
+/* punched hole with a reinforcement ring */
 .zp-close::before {
   content: '';
   position: absolute;
@@ -499,9 +620,9 @@
   height: 10px;
   margin-top: -5px;
   border-radius: 50%;
-  background: #b89e70;
+  background: #23364f;
   box-shadow:
-    inset 0 1px 2px rgb(0 0 0 / 0.5),
+    inset 0 1px 2px rgb(0 0 0 / 0.6),
     0 0 0 2.5px #fff8e6;
 }
 
@@ -532,8 +653,6 @@
   opacity: 1;
 }
 
-/* Focus ring drawn under the paper: yellow with an ink edge, visible on both
-   the light and the linen */
 .zp-ring-outer,
 .zp-ring-inner {
   fill: none;
@@ -555,7 +674,6 @@
   stroke-width: 8px;
 }
 
-/* No keyboard on touch-only devices: no key cap */
 @media (hover: none) and (pointer: coarse) {
   .zp-key {
     display: none;
@@ -566,84 +684,59 @@
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .zp-close {
-    transition: transform 0.18s ease;
-  }
-
-  .zp-close-stitch {
-    transition: opacity 0.15s ease;
-  }
-
-  .zp-close:hover {
-    transform: rotate(-2.5deg) translateY(-2px);
-  }
-
-  .zp-close:active {
-    transform: rotate(-2.5deg) translateY(2px);
-  }
-}
-
-@media (forced-colors: active) {
-  .zp-close-paper {
-    fill: Canvas;
-    stroke: CanvasText;
-  }
-
-  .zp-close-stitch polygon,
-  .zp-stitch rect {
-    stroke: CanvasText;
-  }
-}
-
 /* =========================================================
-   Content inside the page (from pages/levels.tsx and shared.tsx).
+   Content pieces (from pages/levels.tsx and pages/shared.tsx).
    Known classes are scoped as .zp-dialog .zp-body .x so they beat
-   the global card styles; bare elements use :where() so classed
-   content (the "Working on it" screen, the Visit tag) keeps its look.
+   the global card styles; other components inside (contact form,
+   "Working on it", Visit) keep their own look.
    ========================================================= */
 .zp-body {
   font-family: var(--font-body);
   font-size: 1.0625rem;
   line-height: 1.6;
-  color: var(--ink);
   overflow-wrap: break-word;
 }
 
-:where(.zp-body) :where(p:not([class])) {
-  max-width: 66ch;
-  margin: 0 0 1em;
-}
-
-:where(.zp-body) > :where(:first-child),
-:where(.zp-body) > :where(:first-child) > :where(:first-child) {
-  margin-top: 0;
-}
-
-:where(.zp-body) > :where(:last-child),
-:where(.zp-body) > :where(:last-child) > :where(:last-child) {
-  margin-bottom: 0;
-}
-
-:where(.zp-body) :where(ul:not([class]), ol:not([class])) {
-  margin: 0 0 1em;
-  padding-left: 1.35em;
-}
-
-:where(.zp-body) :where(ul:not([class]), ol:not([class])) > :where(li + li) {
-  margin-top: 0.3em;
-}
-
-/* Section headings with a felt-strip highlight in the level's colour */
-:where(.zp-body) :where(h3:not([class])) {
-  width: fit-content;
-  margin: 1.6em 0 0.7em;
-  padding: 0 5px;
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 600;
+/* ---------- Description: a lined paper note held by a safety pin ---------- */
+.zp-dialog .zp-body > p:not([class]),
+.zp-dialog .zp-body > div > p:not([class]) {
+  position: relative;
+  max-width: 64ch;
+  margin: 26px 0 22px;
+  padding: 18px 20px 16px 42px;
   color: var(--ink);
-  background: linear-gradient(transparent 56%, var(--zp-accent-wash) 56%, var(--zp-accent-wash) 92%, transparent 92%);
+  background-color: #fffdf6;
+  background-image:
+    linear-gradient(90deg, transparent 28px, rgb(214 72 92 / 0.5) 28px 29.5px, transparent 29.5px),
+    linear-gradient(to bottom, transparent calc(100% - 1px), rgb(58 112 190 / 0.3) calc(100% - 1px));
+  background-size:
+    auto,
+    100% 1.6em;
+  background-repeat: no-repeat, repeat-y;
+  background-origin: padding-box, content-box;
+  border-radius: 3px;
+  box-shadow:
+    0 2px 0 rgb(0 0 0 / 0.1),
+    0 10px 18px rgb(0 0 0 / 0.3);
+  transform: rotate(-0.5deg);
+}
+
+.zp-dialog .zp-body > div > p:not([class]):nth-of-type(even) {
+  transform: rotate(0.5deg);
+}
+
+.zp-dialog .zp-body > p:not([class])::before,
+.zp-dialog .zp-body > div > p:not([class])::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 44%;
+  width: 78px;
+  height: 24px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 84 26'%3E%3Cpath d='M18 8.5H69a6.5 6.5 0 1 1 0 13L18 19' fill='none' stroke='%236f7a86' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M18 8.5H69a6.5 6.5 0 1 1 0 13L18 19' fill='none' stroke='%23eef2f6' stroke-width='1.1' stroke-linecap='round'/%3E%3Cpath d='M5 5h13q3 0 3 3v10q0 3-3 3H5q-3 0-3-3V8q0-3 3-3z' fill='%23cfd6de' stroke='%236f7a86' stroke-width='1.4'/%3E%3Cpath d='M6 9h11' stroke='%23ffffff' stroke-opacity='.75' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  filter: drop-shadow(0 2px 1px rgb(0 0 0 / 0.35));
+  transform: rotate(-7deg);
 }
 
 .zp-dialog .zp-body a:not([class]) {
@@ -653,113 +746,208 @@
   text-underline-offset: 2px;
 }
 
-/* Pink focus rings: the global yellow barely shows on linen */
-.zp-dialog .zp-body a:not([class]):focus-visible,
-.zp-dialog .zp-body summary:focus-visible,
-.zp-dialog .zp-body .text-sticker:focus-visible {
+.zp-dialog .zp-body a:not([class]):focus-visible {
   outline: 3px solid var(--pink);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
-/* ---------- Date / place line: a little dashed stamp ---------- */
+/* ---------- Section headings: a strip of washi tape ---------- */
+.zp-dialog .zp-body h3:not([class]) {
+  width: fit-content;
+  max-width: 100%;
+  margin: 32px 0 14px;
+  padding: 6px 20px 7px;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink);
+  background-color: var(--zp-accent-tint);
+  background-image: repeating-linear-gradient(90deg, rgb(255 255 255 / 0.22) 0 2px, transparent 2px 5px);
+  clip-path: polygon(0 12%, 3% 0, 97% 8%, 100% 0, 98% 50%, 100% 100%, 3% 92%, 0 100%, 2% 50%);
+  transform: rotate(-1.2deg);
+}
+
+/* ---------- Date / place line: a kraft tag ---------- */
 .zp-dialog .zp-body .card-meta {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 18px;
+  padding: 6px 16px 7px 32px;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #3a2410;
+  background-color: #e8cf9f;
+  background-image: var(--tex-cardboard);
+  background-size: 220px;
+  background-blend-mode: soft-light;
+  clip-path: polygon(13px 0, 100% 0, 100% 100%, 13px 100%, 0 50%);
+  transform: rotate(1deg);
+}
+
+.zp-dialog .zp-body .card-meta::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: #23364f;
+  box-shadow: 0 0 0 2px #fff4dc;
+}
+
+/* ---------- Degree line: an embroidered name tape ---------- */
+.zp-dialog .zp-body .card-badge {
   width: fit-content;
   max-width: 100%;
   margin: 0 0 14px;
-  padding: 3px 12px 4px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1.4;
-  color: #4d3a22;
-  background: rgb(255 255 255 / 0.55);
-  border: 2px dashed rgb(110 78 36 / 0.4);
-  border-radius: 999px;
-}
-
-/* ---------- Degree line ---------- */
-.zp-dialog .zp-body .card-badge {
-  margin: 0 0 10px;
+  padding: 8px 18px 9px;
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 600;
   line-height: 1.3;
   color: var(--pink-dark);
+  background-color: #fffaf0;
+  background-image: repeating-linear-gradient(45deg, rgb(120 90 45 / 0.05) 0 2px, transparent 2px 4px);
+  border-radius: 4px;
+  outline: 2px dashed rgb(142 12 75 / 0.45);
+  outline-offset: -5px;
+  box-shadow:
+    0 3px 0 rgb(0 0 0 / 0.22),
+    0 6px 10px rgb(0 0 0 / 0.2);
+  transform: rotate(-0.6deg);
 }
 
-/* ---------- Bullet points: little stitched felt dots ---------- */
+/* ---------- Bullet points: felt tags stitched on with an X stitch ---------- */
 .zp-dialog .zp-body .card-points {
   display: grid;
-  gap: 10px;
-  margin: 14px 0 1em;
+  gap: 12px;
+  margin: 18px 0 24px;
   padding: 0;
   list-style: none;
 }
 
 .zp-dialog .zp-body .card-points li {
   position: relative;
-  padding-left: 28px;
+  padding: 11px 38px 12px 48px;
+  color: var(--ink);
+  background-color: var(--zp-accent-felt);
+  background-image: var(--tex-felt);
+  background-size: 200px;
+  background-blend-mode: soft-light;
+  border-radius: 6px 16px 16px 6px;
+  box-shadow:
+    0 3px 0 rgb(0 0 0 / 0.2),
+    0 7px 12px rgb(0 0 0 / 0.24);
+  transform: rotate(-0.4deg);
 }
 
+.zp-dialog .zp-body .card-points li:nth-child(even) {
+  transform: rotate(0.4deg);
+}
+
+/* the X stitch holding the tag on, with its four needle holes */
 .zp-dialog .zp-body .card-points li::before {
   content: '';
   position: absolute;
-  top: 0.38em;
-  left: 4px;
-  width: 14px;
-  height: 14px;
-  background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.4), transparent 60%), var(--zp-accent);
-  border: 1.5px dashed rgb(255 255 255 / 0.9);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 1.5px var(--zp-accent),
-    0 1px 2px 1.5px rgb(0 0 0 / 0.22);
+  top: 14px;
+  left: 15px;
+  width: 18px;
+  height: 18px;
+  background:
+    linear-gradient(
+      45deg,
+      transparent calc(50% - 1.6px),
+      var(--zp-accent-deep) calc(50% - 1.6px) calc(50% + 1.6px),
+      transparent calc(50% + 1.6px)
+    ),
+    linear-gradient(
+      -45deg,
+      transparent calc(50% - 1.6px),
+      var(--zp-accent-deep) calc(50% - 1.6px) calc(50% + 1.6px),
+      transparent calc(50% + 1.6px)
+    ),
+    radial-gradient(circle at 2px 2px, rgb(0 0 0 / 0.35) 0 1.3px, transparent 1.8px),
+    radial-gradient(circle at 16px 2px, rgb(0 0 0 / 0.35) 0 1.3px, transparent 1.8px),
+    radial-gradient(circle at 2px 16px, rgb(0 0 0 / 0.35) 0 1.3px, transparent 1.8px),
+    radial-gradient(circle at 16px 16px, rgb(0 0 0 / 0.35) 0 1.3px, transparent 1.8px);
+  border-radius: 0;
+  box-shadow: none;
 }
 
-/* ---------- Tags: woven fabric labels with a stitched edge ---------- */
+/* the tag's punched hole */
+.zp-dialog .zp-body .card-points li::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 13px;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #22344d;
+  box-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.6),
+    0 0 0 2.5px rgb(255 255 255 / 0.7);
+}
+
+/* ---------- Tools: iron-on patches with pinked (zigzag) edges ---------- */
 .zp-dialog .zp-body .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 9px;
-  margin: 18px 0 1em;
+  gap: 12px 10px;
+  margin: 22px 0;
   padding: 0;
   list-style: none;
+  filter: drop-shadow(0 2px 0 rgb(0 0 0 / 0.25)) drop-shadow(0 4px 4px rgb(0 0 0 / 0.2));
 }
 
 .zp-dialog .zp-body .tag {
   --tag-bg: #dfe9fb;
   --tag-ink: #1d2b4f;
-  --tag-fold: #a9bfe6;
-  padding: 5px 12px 6px 15px;
-  font-size: 0.875rem;
+  padding: 9px 15px 10px;
+  font-size: 0.95rem;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.2;
   color: var(--tag-ink);
   background-color: var(--tag-bg);
   background-image: var(--tex-felt);
   background-size: 140px;
   background-blend-mode: soft-light;
-  border-radius: 3px;
-  outline: 1.5px dashed color-mix(in srgb, var(--tag-ink) 40%, transparent);
-  outline-offset: -4px;
-  box-shadow:
-    inset 4px 0 0 var(--tag-fold),
-    0 2px 0 rgb(60 40 15 / 0.18),
-    0 3px 6px rgb(0 0 0 / 0.12);
-  transform: rotate(-1deg);
+  border-radius: 0;
+  outline: 1.5px dashed color-mix(in srgb, var(--tag-ink) 45%, transparent);
+  outline-offset: -6px;
+  box-shadow: none;
+  /* pinking-shear teeth along the top and bottom edges */
+  -webkit-mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / 7px 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 7px 51% repeat-x;
+  mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / 7px 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 7px 51% repeat-x;
+  transform: rotate(-1.5deg);
 }
 
-.zp-dialog .zp-body .tag:nth-child(3n + 2) {
+.zp-dialog .zp-body .tag:nth-child(4n + 2) {
   --tag-bg: #fbe1eb;
   --tag-ink: #5a1636;
-  --tag-fold: #eaa9c4;
-  transform: rotate(1deg);
+  transform: rotate(1.2deg);
 }
 
-.zp-dialog .zp-body .tag:nth-child(3n + 3) {
+.zp-dialog .zp-body .tag:nth-child(4n + 3) {
   --tag-bg: #dff2e1;
   --tag-ink: #24452c;
-  --tag-fold: #a3d0aa;
-  transform: rotate(-0.5deg);
+  transform: rotate(-0.6deg);
+}
+
+.zp-dialog .zp-body .tag:nth-child(4n + 4) {
+  --tag-bg: #fff0c2;
+  --tag-ink: #4a3500;
+  transform: rotate(1.8deg);
 }
 
 /* ---------- GPA: a ribbon banner pinned with a rosette ---------- */
@@ -768,107 +956,89 @@
   display: block;
   width: fit-content;
   max-width: calc(100% - 30px);
-  margin: 12px 0 24px 30px;
-  padding: 9px 30px 10px 38px;
+  margin: 16px 0 26px 30px;
+  padding: 10px 30px 11px 40px;
   font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 600;
   line-height: 1.3;
   color: var(--ink);
   background:
-    repeating-linear-gradient(90deg, rgb(138 106 0 / 0.55) 0 6px, transparent 6px 10px) 30px 4px / calc(100% - 58px)
+    repeating-linear-gradient(90deg, rgb(138 106 0 / 0.55) 0 6px, transparent 6px 10px) 32px 4px / calc(100% - 60px)
       1.5px no-repeat,
-    repeating-linear-gradient(90deg, rgb(138 106 0 / 0.55) 0 6px, transparent 6px 10px) 30px calc(100% - 4px) /
-      calc(100% - 58px) 1.5px no-repeat,
+    repeating-linear-gradient(90deg, rgb(138 106 0 / 0.55) 0 6px, transparent 6px 10px) 32px calc(100% - 4px) /
+      calc(100% - 60px) 1.5px no-repeat,
     linear-gradient(to bottom right, #ffe9a3 50%, transparent 50%) right top / 14px 50% no-repeat,
     linear-gradient(to top right, #ffe9a3 50%, transparent 50%) right bottom / 14px 50% no-repeat,
     linear-gradient(#ffe9a3, #ffe9a3) left top / calc(100% - 14px) 100% no-repeat;
   border-radius: 0;
   box-shadow: none;
-  filter: drop-shadow(0 3px 0 rgb(60 40 15 / 0.22));
+  filter: drop-shadow(0 3px 0 rgb(0 0 0 / 0.3)) drop-shadow(0 6px 6px rgb(0 0 0 / 0.2));
   transform: rotate(-1.5deg);
 }
 
-/* the rosette: pleated pink ring, white stitched band, gold centre */
 .zp-dialog .zp-body .gpa::before {
   content: '';
   position: absolute;
   top: 50%;
-  left: -28px;
+  left: -30px;
   z-index: 1;
-  width: 56px;
-  height: 56px;
-  margin-top: -28px;
+  width: 60px;
+  height: 60px;
+  margin-top: -30px;
   border-radius: 50%;
   background:
-    radial-gradient(
-      circle,
-      #ffd54a 0 9px,
-      #e3a400 9px 10.5px,
-      #fffdf7 10.5px 15.5px,
-      rgb(255 255 255 / 0) 16px
-    ),
+    radial-gradient(circle, #ffd54a 0 10px, #e3a400 10px 11.5px, #fffdf7 11.5px 17px, rgb(255 255 255 / 0) 17.5px),
     repeating-conic-gradient(var(--pink) 0 12deg, #ec4f97 12deg 24deg);
   box-shadow:
     0 0 0 2px #fff,
     0 2px 3px 2px rgb(0 0 0 / 0.2);
 }
 
-/* the rosette's two ribbon tails */
 .zp-dialog .zp-body .gpa::after {
   content: '';
   position: absolute;
   top: 50%;
-  left: -16px;
+  left: -17px;
   z-index: 0;
-  width: 32px;
-  height: 40px;
+  width: 34px;
+  height: 44px;
   background: linear-gradient(90deg, #8e0c4b 50%, #a8105a 50%);
   clip-path: polygon(0 0, 100% 0, 100% 100%, 78% 84%, 56% 100%, 56% 12%, 44% 12%, 44% 100%, 22% 84%, 0 100%);
   transform: rotate(6deg);
 }
 
-/* ---------- Course groups: felt folders that unfold ---------- */
+/* ---------- Course groups: felt pockets that unbutton ---------- */
 .zp-dialog .zp-body .course-groups {
   display: grid;
-  gap: 28px;
-  margin: 26px 0 1em;
+  gap: 18px;
+  margin: 18px 0 1em;
 }
 
 .zp-dialog .zp-body .course-group {
   position: relative;
+  color: var(--ink);
   background-color: #efe3c6;
-  background-color: color-mix(in srgb, var(--zp-accent) 14%, #efe3c6);
+  background-color: color-mix(in srgb, var(--zp-accent) 18%, #efe3c6);
   background-image: var(--tex-felt);
   background-size: 220px;
   background-blend-mode: soft-light;
-  border-radius: 4px 14px 14px;
-  outline: 2px dashed color-mix(in srgb, var(--zp-accent-deep) 50%, transparent);
+  border-radius: 8px 8px 22px 22px;
+  outline: 2px dashed color-mix(in srgb, var(--zp-accent-deep) 55%, transparent);
   outline-offset: -6px;
   box-shadow:
-    0 4px 0 rgb(60 40 15 / 0.2),
-    0 8px 14px rgb(0 0 0 / 0.1);
+    0 4px 0 rgb(0 0 0 / 0.25),
+    0 9px 16px rgb(0 0 0 / 0.25);
 }
 
-/* the folder's tab */
-.zp-dialog .zp-body .course-group::before {
-  content: '';
-  position: absolute;
-  bottom: calc(100% - 1px);
-  left: 0;
-  width: min(46%, 170px);
-  height: 14px;
-  background: inherit;
-  border-radius: 10px 14px 0 0;
-  clip-path: polygon(0 0, 86% 0, 100% 100%, 0 100%);
-}
-
+/* the flap */
 .zp-dialog .zp-body .course-group > summary {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 54px;
-  padding: 10px 14px 10px 18px;
+  min-height: 58px;
+  padding: 12px 64px 14px 18px;
   font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 600;
@@ -876,65 +1046,99 @@
   color: var(--ink);
   list-style: none;
   cursor: pointer;
-  border-radius: 4px 14px 14px;
+  background-color: color-mix(in srgb, var(--zp-accent) 34%, #efe3c6);
+  background-image: var(--tex-felt);
+  background-size: 220px;
+  background-blend-mode: soft-light;
+  border-radius: 8px 8px 50% 50% / 8px 8px 22px 22px;
+  box-shadow:
+    inset 0 -2px 0 rgb(0 0 0 / 0.12),
+    0 3px 0 rgb(0 0 0 / 0.15);
 }
 
 .zp-dialog .zp-body .course-group > summary::-webkit-details-marker {
   display: none;
 }
 
-.zp-dialog .zp-body .course-group[open] > summary {
-  border-bottom: 2px dashed rgb(110 78 36 / 0.3);
-  border-radius: 4px 14px 0 0;
+.zp-dialog .zp-body .course-group > summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  box-shadow: var(--zp-ring);
 }
 
 .zp-dialog .zp-body .course-count {
   margin-right: auto;
   font-weight: 500;
-  color: #4a4a55;
+  color: #3d3d48;
 }
 
-/* pink felt +/- button with a white running stitch */
+/* the buttonhole slit on the flap, shown once the button is undone */
+.zp-dialog .zp-body .course-group > summary::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 30px;
+  width: 6px;
+  height: 22px;
+  margin-top: -11px;
+  border-radius: 3px;
+  background: #2a1f14;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--zp-accent-deep) 60%, transparent),
+    0 0 0 3.5px rgb(255 255 255 / 0.35);
+  opacity: 0;
+}
+
+/* the button: pink, four holes, cross-stitched on (its symbol is silent for screen readers) */
 .zp-dialog .zp-body .course-group > summary::after {
-  content: '+';
-  content: '+' / '';
-  display: inline-grid;
-  flex: none;
-  place-items: center;
+  content: '';
+  content: '' / '';
+  position: absolute;
+  top: 50%;
+  right: 17px;
   width: 32px;
   height: 32px;
-  font-size: 1.35rem;
-  font-weight: 700;
-  line-height: 1;
-  color: #fff;
-  background-color: var(--pink);
-  background-image: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.3), transparent 60%), var(--tex-felt);
-  background-size: auto, 120px;
-  background-blend-mode: normal, multiply;
-  border: 1.5px dashed rgb(255 255 255 / 0.85);
+  margin-top: -16px;
   border-radius: 50%;
+  background:
+    linear-gradient(45deg, transparent calc(50% - 1.2px), #fff3d6 calc(50% - 1.2px) calc(50% + 1.2px), transparent calc(50% + 1.2px))
+      center / 14px 14px no-repeat,
+    linear-gradient(-45deg, transparent calc(50% - 1.2px), #fff3d6 calc(50% - 1.2px) calc(50% + 1.2px), transparent calc(50% + 1.2px))
+      center / 14px 14px no-repeat,
+    radial-gradient(circle at 11px 11px, #4a0a2a 0 2px, transparent 2.6px),
+    radial-gradient(circle at 21px 11px, #4a0a2a 0 2px, transparent 2.6px),
+    radial-gradient(circle at 11px 21px, #4a0a2a 0 2px, transparent 2.6px),
+    radial-gradient(circle at 21px 21px, #4a0a2a 0 2px, transparent 2.6px),
+    radial-gradient(circle at 50% 50%, transparent 11px, rgb(0 0 0 / 0.18) 11.5px 13px, transparent 13.5px),
+    radial-gradient(circle at 35% 30%, #ff8cc0, var(--pink) 60%, #9b0f52 100%);
   box-shadow:
-    0 0 0 2px var(--pink),
-    0 2px 0 2px rgb(90 10 50 / 0.35);
+    0 3px 0 rgb(90 10 50 / 0.45),
+    0 4px 6px rgb(0 0 0 / 0.25);
+}
+
+/* unbuttoned: the button drops off the slit */
+.zp-dialog .zp-body .course-group[open] > summary::before {
+  opacity: 1;
 }
 
 .zp-dialog .zp-body .course-group[open] > summary::after {
-  content: '\2212';
-  content: '\2212' / '';
+  transform: translate(-22px, 14px) rotate(35deg);
 }
 
-/* the paper insert inside an open folder */
+/* what's in the pocket: a paper card */
 .zp-dialog .zp-body .course-list {
   display: grid;
   gap: 0;
-  margin: 10px 12px 12px;
+  margin: 22px 14px 18px;
   padding: 2px 16px 6px;
   list-style: none;
+  color: var(--ink);
   background: #fffaf0;
   border-radius: 10px;
   box-shadow:
     inset 0 0 0 1px rgb(110 78 36 / 0.15),
-    0 2px 0 rgb(60 40 15 / 0.12);
+    0 3px 0 rgb(60 40 15 / 0.15),
+    0 6px 10px rgb(0 0 0 / 0.12);
 }
 
 .zp-dialog .zp-body .course-list li {
@@ -958,9 +1162,9 @@
 /* course codes: tiny paper tags with a punched hole */
 .zp-dialog .zp-body .course-code {
   align-self: start;
-  padding: 1px 8px 2px 17px;
+  padding: 1px 8px 2px 18px;
   font-family: var(--font-display);
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.45;
   white-space: nowrap;
@@ -977,51 +1181,32 @@
 
 .zp-dialog .zp-body .course-summary {
   grid-column: 1 / -1;
-  font-size: 0.97rem;
+  font-size: 1rem;
   line-height: 1.55;
   color: #33333f;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .zp-dialog .zp-body .course-group[open] > .course-list {
-    animation: zp-unfold 0.28s cubic-bezier(0.2, 0.8, 0.3, 1.1) both;
-    transform-origin: 50% 0;
-  }
-}
-
-@keyframes zp-unfold {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scaleY(0.92);
-  }
 }
 
 /* ---------- Skills ---------- */
 .zp-dialog .zp-body .skills {
   display: grid;
-  gap: 18px;
+  gap: 22px;
   margin: 0;
-}
-
-.zp-dialog .zp-body .skill-group {
-  padding-bottom: 16px;
-  border-bottom: 2px dashed var(--zp-thread);
-}
-
-.zp-dialog .zp-body .skill-group:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
 }
 
 .zp-dialog .zp-body .skill-group dt {
   width: fit-content;
-  margin: 0 0 10px;
-  padding: 0 5px;
+  max-width: 100%;
+  margin: 0 0 4px;
+  padding: 6px 20px 7px;
   font-family: var(--font-display);
   font-size: 1.12rem;
-  font-weight: 600;
-  line-height: 1.3;
-  background: linear-gradient(transparent 56%, var(--zp-accent-wash) 56%, var(--zp-accent-wash) 92%, transparent 92%);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink);
+  background-color: var(--zp-accent-tint);
+  background-image: repeating-linear-gradient(90deg, rgb(255 255 255 / 0.22) 0 2px, transparent 2px 5px);
+  clip-path: polygon(0 12%, 3% 0, 97% 8%, 100% 0, 98% 50%, 100% 100%, 3% 92%, 0 100%, 2% 50%);
+  transform: rotate(-1.2deg);
 }
 
 .zp-dialog .zp-body .skill-group dd {
@@ -1029,130 +1214,615 @@
 }
 
 .zp-dialog .zp-body .skill-group .tags {
-  margin: 0;
+  margin: 10px 0 0;
 }
 
-/* ---------- Word stickers (outside links) ---------- */
+/* ---------- Links: sewn-on fabric buttons with thread holes ---------- */
 .zp-dialog .zp-body .link-stickers--inline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
   gap: 16px;
-  margin: 22px 0 8px;
-  padding: 4px;
+  margin: 26px 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.zp-dialog .zp-body .text-sticker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 54px;
+  padding: 9px 22px 10px 58px;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #fff;
+  text-decoration: none;
+  background-color: color-mix(in srgb, var(--sticker-color, var(--pink)) 80%, #000);
+  background-image: radial-gradient(ellipse at 30% 20%, rgb(255 255 255 / 0.2), transparent 60%), var(--tex-felt);
+  background-size: auto, 160px;
+  background-blend-mode: normal, multiply;
+  border: 0;
+  border-radius: 999px;
+  box-shadow:
+    0 4px 0 color-mix(in srgb, var(--sticker-color, var(--pink)) 45%, #000),
+    0 9px 14px rgb(0 0 0 / 0.3);
+  transform: rotate(var(--tilt, 0deg));
+}
+
+/* running stitch around the fabric */
+.zp-dialog .zp-body .text-sticker::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 2px dashed rgb(255 255 255 / 0.65);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* the sewing button: four holes, cross-stitched in the link's colour */
+.zp-dialog .zp-body .text-sticker::before {
+  --thread: var(--sticker-color, var(--pink));
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  width: 36px;
+  height: 36px;
+  margin-top: -18px;
+  border-radius: 50%;
+  background:
+    linear-gradient(45deg, transparent calc(50% - 1.3px), var(--thread) calc(50% - 1.3px) calc(50% + 1.3px), transparent calc(50% + 1.3px))
+      center / 15px 15px no-repeat,
+    linear-gradient(-45deg, transparent calc(50% - 1.3px), var(--thread) calc(50% - 1.3px) calc(50% + 1.3px), transparent calc(50% + 1.3px))
+      center / 15px 15px no-repeat,
+    radial-gradient(circle at 12.5px 12.5px, #5a4630 0 2.1px, transparent 2.7px),
+    radial-gradient(circle at 23.5px 12.5px, #5a4630 0 2.1px, transparent 2.7px),
+    radial-gradient(circle at 12.5px 23.5px, #5a4630 0 2.1px, transparent 2.7px),
+    radial-gradient(circle at 23.5px 23.5px, #5a4630 0 2.1px, transparent 2.7px),
+    radial-gradient(circle at 50% 50%, transparent 12.5px, rgb(0 0 0 / 0.14) 13px 14.5px, transparent 15px),
+    radial-gradient(circle at 35% 30%, #fffaf0, #e6d5b3 72%);
+  box-shadow:
+    0 2px 0 rgb(0 0 0 / 0.3),
+    0 3px 5px rgb(0 0 0 / 0.25);
+}
+
+.zp-dialog .zp-body .text-sticker:hover {
+  transform: rotate(var(--tilt, 0deg)) translateY(-2px);
+}
+
+.zp-dialog .zp-body .text-sticker:active {
+  transform: rotate(var(--tilt, 0deg)) translateY(3px) scale(1.03, 0.94);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--sticker-color, var(--pink)) 45%, #000),
+    0 4px 8px rgb(0 0 0 / 0.3);
+}
+
+.zp-dialog .zp-body .text-sticker:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
+}
+
+/* ---------- Visit now!: a big felt button that squishes when pressed ---------- */
+.zp-dialog .zp-body .levels-visit-row {
+  display: flex;
+  justify-content: center;
+  margin: 34px 0 14px;
+}
+
+.zp-dialog .zp-body .levels-tag--big {
+  position: relative;
+  min-height: 68px;
+  padding: 14px 38px 16px;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #fff;
+  background-color: color-mix(in srgb, var(--zp-accent) 74%, #1b1b24);
+  background-image: radial-gradient(ellipse at 35% 20%, rgb(255 255 255 / 0.28), transparent 60%), var(--tex-felt);
+  background-size: auto, 180px;
+  background-blend-mode: normal, multiply;
+  border-radius: 999px;
+  box-shadow:
+    0 7px 0 color-mix(in srgb, var(--zp-accent) 50%, #000),
+    0 14px 22px rgb(0 0 0 / 0.35);
+  filter: none;
+  transform: rotate(-1.5deg);
+}
+
+.zp-dialog .zp-body .levels-tag--big .levels-tag-art {
+  display: none;
+}
+
+.zp-dialog .zp-body .levels-tag--big::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 2.5px dashed rgb(255 255 255 / 0.7);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.zp-dialog .zp-body .levels-tag--big:hover {
+  transform: rotate(-1.5deg) translateY(-2px);
+}
+
+.zp-dialog .zp-body .levels-tag--big:active {
+  transform: rotate(-1.5deg) translateY(6px) scale(1.05, 0.88);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--zp-accent) 50%, #000),
+    0 5px 10px rgb(0 0 0 / 0.3);
+}
+
+.zp-dialog .zp-body .levels-tag--big:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 5px;
+}
+
+/* ---------- Other screens that land in the pocket ---------- */
+.zp-dialog .zp-body .levels-soon {
+  padding: 18px 16px;
+  color: var(--ink);
+  background: #fffaf0;
+  border-radius: 14px;
+  box-shadow:
+    0 4px 0 rgb(0 0 0 / 0.2),
+    0 10px 18px rgb(0 0 0 / 0.28);
 }
 
 /* =========================================================
-   Small screens (320px and up)
+   Motion (only when the visitor hasn't asked for less)
    ========================================================= */
-@media (max-width: 520px) {
+@media (prefers-reduced-motion: no-preference) {
+  .zp-rays-spin {
+    animation: zp-spin 90s linear infinite;
+  }
+
+  .zp-mote {
+    animation: zp-drift var(--zp-dur, 8s) ease-in-out var(--zp-delay, 0s) infinite;
+  }
+
+  .zp-close,
+  .zp-dialog .zp-body .text-sticker,
+  .zp-dialog .zp-body .levels-tag--big {
+    transition:
+      transform 0.14s ease,
+      box-shadow 0.14s ease;
+  }
+
+  .zp-close-stitch {
+    transition: opacity 0.15s ease;
+  }
+
+  .zp-close:hover {
+    transform: rotate(2.5deg) translateY(-2px);
+  }
+
+  .zp-close:active {
+    transform: rotate(2.5deg) translateY(2px);
+  }
+
+  .zp-dialog .zp-body .course-group > summary::after {
+    transition: transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+
+  .zp-dialog .zp-body .course-group > summary::before {
+    transition: opacity 0.2s ease;
+  }
+
+  .zp-dialog .zp-body .course-group[open] > .course-list {
+    animation: zp-unfold 0.3s cubic-bezier(0.2, 0.8, 0.3, 1.1) both;
+    transform-origin: 50% 0;
+  }
+
+  /* ---- The opening show: pieces drop in, stitches sew in, the pull swings,
+     felt stars puff out. Only while the pocket is first opening. ---- */
+  .zp-pocket--intro .zp-ts rect {
+    animation: zp-sew 1s ease-out 0.45s both;
+  }
+
+  .zp-pocket--intro .zp-zipper-pull {
+    animation: zp-swing 1.4s ease-out 0.6s both;
+  }
+
+  .zp-pocket--intro .zp-head > *,
+  .zp-pocket--intro .zp-body > * > :where(:not(ul):not(dl):not(.course-groups)),
+  .zp-pocket--intro .zp-body .card-points > li,
+  .zp-pocket--intro .zp-body .tags > li,
+  .zp-pocket--intro .zp-body .link-stickers > li,
+  .zp-pocket--intro .zp-body .course-group,
+  .zp-pocket--intro .zp-body .skill-group {
+    animation: zp-drop 0.55s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+    animation-delay: calc(var(--zp-base, 0.82s) + var(--zp-i, 0) * 75ms);
+  }
+
+  .zp-pocket--intro .zp-head > .zp-title {
+    --zp-base: 0.56s;
+  }
+
+  .zp-pocket--intro .zp-head > .zp-art {
+    --zp-base: 0.66s;
+  }
+
+  .zp-pocket--intro .zp-head > .zp-ribbon {
+    --zp-base: 0.74s;
+  }
+
+  .zp-pocket--intro .zp-body .card-points > li {
+    --zp-base: 1s;
+  }
+
+  .zp-pocket--intro .zp-body .tags > li {
+    --zp-base: 1.1s;
+  }
+
+  .zp-pocket--intro .zp-body .link-stickers > li {
+    --zp-base: 1.2s;
+  }
+
+  .zp-pocket--intro .zp-body .course-group,
+  .zp-pocket--intro .zp-body .skill-group {
+    --zp-base: 0.95s;
+  }
+
+  .zp-pocket--intro .zp-body > * > :nth-child(2),
+  .zp-pocket--intro .zp-body li:nth-child(2),
+  .zp-pocket--intro .zp-body .course-group:nth-child(2),
+  .zp-pocket--intro .zp-body .skill-group:nth-child(2) {
+    --zp-i: 1;
+  }
+
+  .zp-pocket--intro .zp-body > * > :nth-child(3),
+  .zp-pocket--intro .zp-body li:nth-child(3),
+  .zp-pocket--intro .zp-body .course-group:nth-child(3),
+  .zp-pocket--intro .zp-body .skill-group:nth-child(3) {
+    --zp-i: 2;
+  }
+
+  .zp-pocket--intro .zp-body > * > :nth-child(4),
+  .zp-pocket--intro .zp-body li:nth-child(4),
+  .zp-pocket--intro .zp-body .course-group:nth-child(4),
+  .zp-pocket--intro .zp-body .skill-group:nth-child(4) {
+    --zp-i: 3;
+  }
+
+  .zp-pocket--intro .zp-body > * > :nth-child(5),
+  .zp-pocket--intro .zp-body li:nth-child(5),
+  .zp-pocket--intro .zp-body .course-group:nth-child(5),
+  .zp-pocket--intro .zp-body .skill-group:nth-child(5) {
+    --zp-i: 4;
+  }
+
+  .zp-pocket--intro .zp-body > * > :nth-child(n + 6),
+  .zp-pocket--intro .zp-body li:nth-child(n + 6),
+  .zp-pocket--intro .zp-body .course-group:nth-child(n + 6),
+  .zp-pocket--intro .zp-body .skill-group:nth-child(n + 6) {
+    --zp-i: 5;
+  }
+
+  /* each felt tag's X stitch gets sewn on just after the tag lands */
+  .zp-pocket--intro .zp-body .card-points > li::before {
+    animation: zp-stitch 0.35s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+    animation-delay: calc(var(--zp-base, 1s) + var(--zp-i, 0) * 75ms + 0.3s);
+  }
+
+  .zp-pocket--intro .zp-star {
+    animation: zp-puff 1.1s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+    animation-delay: calc(0.62s + var(--zp-d, 0s));
+  }
+}
+
+@keyframes zp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes zp-drift {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.6);
+  }
+  25% {
+    opacity: 0.95;
+  }
+  75% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--zp-dx, 0), var(--zp-dy, -60px), 0) scale(1.1);
+  }
+}
+
+/* individual `translate`, so the pieces keep their own tilts (transform) */
+@keyframes zp-drop {
+  0% {
+    opacity: 0;
+    translate: 0 -30px;
+  }
+  55% {
+    opacity: 1;
+    translate: 0 5px;
+  }
+  78% {
+    translate: 0 -2px;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes zp-sew {
+  from {
+    stroke-dashoffset: 96;
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes zp-stitch {
+  from {
+    opacity: 0;
+    scale: 0.2;
+    rotate: -90deg;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+@keyframes zp-swing {
+  0% {
+    rotate: 34deg;
+  }
+  22% {
+    rotate: -22deg;
+  }
+  44% {
+    rotate: 13deg;
+  }
+  64% {
+    rotate: -7deg;
+  }
+  82% {
+    rotate: 3deg;
+  }
+  100% {
+    rotate: 0deg;
+  }
+}
+
+@keyframes zp-puff {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3) rotate(0deg);
+  }
+  14% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 1;
+    transform: translate(var(--zp-dx), var(--zp-dy)) scale(1) rotate(var(--zp-r));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--zp-dx) * 1.15), calc(var(--zp-dy) + 80px)) scale(0.9)
+      rotate(calc(var(--zp-r) * 1.6));
+  }
+}
+
+@keyframes zp-unfold {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scaleY(0.9);
+  }
+}
+
+/* Felt confetti stars (only rendered with motion allowed; invisible until animated) */
+.zp-confetti {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 6;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.zp-star {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--zp-s, 18px);
+  height: var(--zp-s, 18px);
+  margin: calc(var(--zp-s, 18px) / -2) 0 0 calc(var(--zp-s, 18px) / -2);
+  background-color: var(--zp-c, #ffd23f);
+  background-image: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.5), transparent 60%), var(--tex-felt);
+  background-size: auto, 80px;
+  background-blend-mode: normal, multiply;
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  opacity: 0;
+}
+
+/* =========================================================
+   Forced colours
+   ========================================================= */
+@media (forced-colors: active) {
+  .zp-close-paper {
+    fill: Canvas;
+    stroke: CanvasText;
+  }
+
+  .zp-close-stitch polygon,
+  .zp-ts rect {
+    stroke: CanvasText;
+  }
+}
+
+/* =========================================================
+   Phones (320-600px wide) and short landscape screens: the
+   pocket goes full-screen; Close stays at the top while the
+   pieces scroll; text 16px and up; tap targets 44px and up.
+   (Keep the query in sync with isCompact in ZipperPortal.tsx.)
+   ========================================================= */
+@media (max-width: 600px), (max-height: 500px) {
   .zp-root {
-    padding: 48px 12px 38px;
+    display: block;
+    padding: 0;
   }
 
   .zp-dialog {
-    max-height: calc(100vh - 86px);
-    max-height: calc(100dvh - 86px);
+    position: absolute;
+    inset: 0;
+    width: auto;
+    max-height: none;
   }
 
-  .zp-sheet {
-    padding-bottom: 28px;
+  .zp-denim {
+    border-radius: 0;
+    box-shadow: inset 0 -16px 26px rgb(0 0 0 / 0.28);
   }
 
-  .zp-back {
-    border-radius: 18px;
-    transform: rotate(1.6deg) translate(2px, 4px);
+  .zp-fray {
+    display: none;
   }
 
-  .zp-page {
-    border-radius: 16px;
-  }
-
-  .zp-stitch {
-    top: 6px;
+  .zp-ts--outer {
+    top: calc(env(safe-area-inset-top, 0px) + 28px);
     left: 6px;
-    width: calc(100% - 15px);
-    height: calc(100% - 15px);
+    width: calc(100% - 14px);
+    height: calc(100% - env(safe-area-inset-top, 0px) - 36px);
   }
 
-  .zp-tape {
-    width: 70px;
-    height: 22px;
+  .zp-ts--inner {
+    top: calc(env(safe-area-inset-top, 0px) + 33px);
+    left: 11px;
+    width: calc(100% - 24px);
+    height: calc(100% - env(safe-area-inset-top, 0px) - 46px);
   }
 
-  .zp-tape--tl,
-  .zp-tape--bl {
-    left: -20px;
+  .zp-rivet--tl,
+  .zp-rivet--tr {
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
   }
 
-  .zp-label {
-    margin: 14px -6px 0;
-    padding: 6px 18px 7px;
+  .zp-rivet--bl,
+  .zp-rivet--br {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  }
+
+  .zp-zipper {
+    top: calc(env(safe-area-inset-top, 0px) + 6px);
+    left: 22px;
+    right: 22px;
+  }
+
+  .zp-bar {
+    min-height: 0;
+    padding: calc(env(safe-area-inset-top, 0px) + 34px) 128px 6px 48px;
+  }
+
+  .zp-leather {
     font-size: 1rem;
   }
 
-  .zp-sheet--art .zp-label {
-    padding-right: 100px;
-  }
-
-  .zp-polaroid {
-    --zp-pol-scale: 0.7;
-    top: -40px;
-    right: -6px;
-  }
-
-  .zp-scroll {
-    padding: 18px 16px 14px;
-  }
-
-  .zp-sheet--art .zp-scroll {
-    padding-top: 22px;
-  }
-
   .zp-close {
-    right: 14px;
-    bottom: -24px;
+    top: calc(env(safe-area-inset-top, 0px) + 30px);
+    right: 12px;
     min-height: 48px;
     font-size: 1.15rem;
   }
 
+  .zp-pilot-anchor {
+    top: calc(env(safe-area-inset-top, 0px) + 26px);
+    left: 6px;
+    width: 110px;
+    height: 80px;
+  }
+
+  .zp-scroll {
+    padding: 10px 16px calc(32px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .zp-head {
+    gap: 14px;
+    margin-bottom: 22px;
+    padding-inline: 4px;
+  }
+
+  .zp-pocket--art .zp-head {
+    column-gap: 12px;
+  }
+
+  .zp-title {
+    font-size: clamp(1.45rem, 1rem + 3vw, 1.8rem);
+    border-width: 6px;
+    border-radius: 18px;
+  }
+
+  .zp-art {
+    --zp-art-scale: 0.66;
+    width: 86px;
+    height: 86px;
+  }
+
+  .zp-dialog .zp-body > p:not([class]),
+  .zp-dialog .zp-body > div > p:not([class]) {
+    padding: 18px 14px 14px 36px;
+    background-image:
+      linear-gradient(90deg, transparent 24px, rgb(214 72 92 / 0.5) 24px 25.5px, transparent 25.5px),
+      linear-gradient(to bottom, transparent calc(100% - 1px), rgb(58 112 190 / 0.3) calc(100% - 1px));
+  }
+
+  .zp-dialog .zp-body .card-points li {
+    padding: 11px 34px 12px 44px;
+  }
+
+  .zp-dialog .zp-body .card-points li::before {
+    left: 13px;
+  }
+
+  .zp-dialog .zp-body .tag {
+    font-size: 1rem;
+  }
+
   .zp-dialog .zp-body .gpa {
     padding-right: 24px;
-    font-size: 1rem;
+    font-size: 1.05rem;
+  }
+
+  .zp-dialog .zp-body .course-group > summary {
+    padding-left: 14px;
   }
 
   .zp-dialog .zp-body .course-list {
     margin-inline: 8px;
     padding-inline: 12px;
   }
-}
 
-/* Short screens (landscape phones): a smaller polaroid and less headroom */
-@media (max-height: 520px) {
-  .zp-root {
-    padding-top: 42px;
+  .zp-dialog .zp-body .course-code {
+    font-size: 1rem;
   }
 
-  .zp-dialog {
-    max-height: calc(100vh - 80px);
-    max-height: calc(100dvh - 80px);
+  .zp-dialog .zp-body .text-sticker {
+    font-size: 1.1rem;
   }
 
-  .zp-polaroid {
-    --zp-pol-scale: 0.6;
-    top: -34px;
-  }
-
-  .zp-label {
-    margin-top: 10px;
-  }
-
-  .zp-sheet--art .zp-label {
-    padding-right: 96px;
-  }
-
-  .zp-sheet--art .zp-scroll {
-    padding-top: 22px;
-  }
-
-  .zp-title {
-    font-size: 1.5rem;
+  .zp-dialog .zp-body .levels-tag--big {
+    font-size: 1.4rem;
+    padding-inline: 28px;
   }
 }

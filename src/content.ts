@@ -94,7 +94,7 @@ export interface CourseTerm {
 export const profile = {
   name: 'Johnny Zakiriiaev',
   fullName: 'Dzhanybek (Johnny) Zakiriiaev',
-  tagline: 'Applied AI and data engineering',
+  tagline: 'Applied AI, data engineering and full-stack',
   location: 'Waterloo, Ontario',
   pitch:
     'I build AI and data systems that organizations actually use, from a patient records platform running in 12 public hospitals in Bishkek to AI assistants and integrations at Toronto companies.',
@@ -141,7 +141,7 @@ export const projects: Project[] = [
     id: 'starry-night',
     devpostUrl: 'https://devpost.com/software/project-eq9tw5acxhf3',
     logo: ignitionLogo,
-    title: 'Starry Night',
+    title: 'Star Glazers',
     badge: '1st of 300+ · Ignition Hacks 2026',
     when: 'Toronto light-pollution map',
     icon: 'star',
@@ -196,8 +196,8 @@ export const projects: Project[] = [
     id: 'love-is-chess',
     devpostUrl: 'https://devpost.com/software/love-is-chess',
     logo: sihLogo,
-    title: 'Love is Chess',
-    badge: 'Winner · Toronto Stupid Ideas Hackathon 2026',
+    title: 'love-is-chess',
+    badge: 'Winner · Waterloo Stupid Ideas Hackathon 2026',
     when: 'Where pieces have feelings',
     icon: 'chess',
     color: '#c8146a',

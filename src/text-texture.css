@@ -1,0 +1,71 @@
+/* Burlap lettering for the big display headings: the letters are filled with
+   Poly Haven's CC0 "Hessian 230" weave (assets/textures/hessian.jpg) under a
+   tint, so they read as stitched burlap but keep strong contrast. Body text
+   stays plain for readability. Browsers without background-clip: text keep the
+   normal solid colours. */
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  /* Dark burlap: start screen name sign, carousel tags, loading title */
+  .title-name,
+  .orbit-tag-text,
+  .loading-title {
+    color: transparent;
+    background-image:
+      linear-gradient(rgb(34 20 10 / 0.7), rgb(34 20 10 / 0.7)),
+      url('./assets/textures/hessian.jpg');
+    background-size: auto, 150px;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none;
+  }
+
+  /* Light burlap letters on the pink section title pill. Layered backgrounds with
+     a clip per layer: the two burlap layers are clipped to the letters and sit on
+     top, the pink layer underneath fills the pill. (A pseudo-element pill would
+     be painted over the letters, since the heading forms its own stacking
+     context.) */
+  .title-bubble {
+    color: transparent;
+    background-color: transparent;
+    background-image:
+      linear-gradient(rgb(255 248 236 / 0.62), rgb(255 248 236 / 0.62)),
+      url('./assets/textures/hessian.jpg'),
+      linear-gradient(var(--pink), var(--pink));
+    background-size: auto, 170px, auto;
+    -webkit-background-clip: text, text, padding-box;
+    background-clip: text, text, padding-box;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* 3D felt letters, like the puffy stars on the start screen: a light top edge,
+     a few pixels of extruded depth and a soft shadow. Stacked drop-shadows (not
+     text-shadow) so the burlap fill isn't covered. */
+  .title-name,
+  .loading-title {
+    filter: drop-shadow(0 -1px 0 rgb(255 236 200 / 0.55)) drop-shadow(0 1px 0 #6e4a22) drop-shadow(0 1px 0 #5e3d1a)
+      drop-shadow(0 1px 0 #4f3214) drop-shadow(0 1px 0 #40280f) drop-shadow(0 4px 4px rgb(0 0 0 / 0.3));
+  }
+
+  .orbit-tag-text {
+    filter: drop-shadow(0 -1px 0 rgb(255 245 215 / 0.6)) drop-shadow(0 1px 0 #7a5410) drop-shadow(0 1px 0 #654409)
+      drop-shadow(0 2px 2px rgb(0 0 0 / 0.25));
+  }
+
+  .title-bubble {
+    filter: drop-shadow(0 -1px 0 rgb(255 255 255 / 0.5)) drop-shadow(0 1px 0 #7d0a41) drop-shadow(0 1px 0 #6d0838)
+      drop-shadow(0 1px 0 #5d0630) drop-shadow(0 5px 5px rgb(0 0 0 / 0.3));
+  }
+}
+
+/* 3D lettering for the headings that sit on paper (portal title, level card
+   title): stacked text-shadows give the same puffy, extruded felt look. */
+.zp-title,
+.levels .levels-card-title {
+  text-shadow:
+    0 -1px 0 rgb(255 255 255 / 0.7),
+    0 1px 0 #d9c7a8,
+    0 2px 0 #cbb693,
+    0 3px 0 #bca27c,
+    0 4px 0 #ab8f67,
+    0 7px 6px rgb(60 40 20 / 0.28);
+}

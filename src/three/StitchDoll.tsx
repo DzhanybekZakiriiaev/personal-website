@@ -27,7 +27,7 @@ export type StitchDollPose = 'dance' | 'wave' | 'idle';
  * one arm on the rim, waving every few seconds) and 'control' (grabs the
  * joystick with the left mitten, thumbs-up with the right, two nods).
  */
-export type DollPose = StitchDollPose | 'cockpit' | 'control';
+export type DollPose = StitchDollPose | 'cockpit' | 'control' | 'cruise';
 
 export interface DollModelProps {
   pose: DollPose;
@@ -62,7 +62,7 @@ const HEAD_LIFT = 0.38;
 const HEAD_R = 0.4;
 const HEAD_SCALE: [number, number, number] = [1.06, 0.96, 1];
 const FOOT_Y = 0.088;
-const MODES: DollPose[] = ['dance', 'wave', 'idle', 'cockpit', 'control'];
+const MODES: DollPose[] = ['dance', 'wave', 'idle', 'cockpit', 'control', 'cruise'];
 
 /* =========================================================
    Small math helpers
@@ -292,6 +292,15 @@ function wavePose(p: Pose, t: number) {
       p.rOut += arms;
     }
   }
+}
+
+/** Sitting in the rocket, both arms resting on the hull (what 'cockpit' looks like between waves). */
+function cruisePose(p: Pose, t: number) {
+  restPose(p);
+  p.lOut = p.rOut = 1.2;
+  p.lFwd = p.rFwd = 0.15;
+  p.lBend = p.rBend = 0.35;
+  p.headX = 0.03 * Math.sin((TAU * t) / 2.4);
 }
 
 /** Sitting in the rocket: left arm resting on the hull, right mitten waves every few seconds. */
@@ -795,7 +804,7 @@ export function DollModel({ pose, stage = true, shadow = true, reduced = false }
 
   const sim = useRef({
     t: 0,
-    weights: { dance: 0, wave: 0, idle: 0, cockpit: 0, control: 0, [pose]: 1 } as Record<DollPose, number>,
+    weights: { dance: 0, wave: 0, idle: 0, cockpit: 0, control: 0, cruise: 0, [pose]: 1 } as Record<DollPose, number>,
     target: pose,
     since: 0,
     started: false,
@@ -848,6 +857,10 @@ export function DollModel({ pose, stage = true, shadow = true, reduced = false }
     if (s.weights.control > 0.001) {
       controlPose(TMP, target === 'control' ? t - s.since : 2);
       addPose(OUT, TMP, s.weights.control / total);
+    }
+    if (s.weights.cruise > 0.001) {
+      cruisePose(TMP, t);
+      addPose(OUT, TMP, s.weights.cruise / total);
     }
 
     // Slow breathing under everything.
