@@ -131,7 +131,7 @@ a {
   right: 16px;
   z-index: 5;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end; /* only the link stickers now, top right */
   align-items: flex-start;
   gap: 16px;
 }
@@ -224,75 +224,14 @@ a {
   outline-offset: 6px;
 }
 
-/* The hanging planets */
+/* The planet carousel lives in components/carousel.css */
 .pod-main {
   position: absolute;
   inset: 0;
   z-index: 2;
 }
 
-.planet-row {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.hang {
-  --planet: clamp(140px, 17vw, 240px);
-  position: absolute;
-  top: 0;
-  left: var(--x);
-  width: var(--planet);
-  margin-left: calc(var(--planet) / -2);
-  transform-origin: 50% 0;
-  will-change: transform;
-}
-
-.hang--center {
-  --planet: clamp(170px, 23vw, 320px);
-  z-index: 2;
-}
-
-.hang--small {
-  --planet: clamp(110px, 12vw, 170px);
-}
-
-.hang-string {
-  display: block;
-  width: 2px;
-  height: var(--string);
-  margin: 0 auto;
-  background: linear-gradient(rgb(255 255 255 / 0.55), rgb(255 255 255 / 0.95));
-  box-shadow: 0 0 2px rgb(0 0 0 / 0.45);
-}
-
-.planet-link {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-  border-radius: 24px;
-}
-
-.planet-link:focus-visible {
-  outline: none;
-}
-
-.planet-body {
-  position: relative;
-  display: block;
-  width: var(--planet);
-  aspect-ratio: 1 / 1;
-  margin-top: -3px;
-}
-
-.planet-link:focus-visible .planet-body {
-  outline: 3px dashed var(--focus);
-  outline-offset: 12px;
-  border-radius: 50%;
-}
-
+/* Flat SVG planet (the Globe3D fallback) */
 .planet-art {
   display: block;
   width: 100%;
@@ -308,88 +247,6 @@ a {
   height: 118%;
   overflow: visible;
   pointer-events: none;
-}
-
-/* Labels: hand-drawn oval bubbles with curly arrows */
-.planet-label {
-  position: relative;
-  left: 50%;
-  display: block;
-  width: max-content;
-  margin-top: clamp(22px, 4vh, 40px);
-  transform: translateX(var(--label-shift, -50%));
-}
-
-.label {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.bubble {
-  position: relative;
-  display: inline-block;
-  padding: 14px 26px;
-  transition: transform 0.25s ease;
-}
-
-.label--selected .bubble {
-  transform: scale(1.07);
-}
-
-.bubble-shape {
-  position: absolute;
-  left: -6px;
-  top: -6px;
-  z-index: 0;
-  overflow: visible;
-}
-
-.bubble-text {
-  position: relative;
-  z-index: 1;
-  display: inline-block;
-  font-family: var(--font-display);
-  font-size: clamp(1.15rem, 1.8vw, 1.7rem);
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--ink);
-  white-space: nowrap;
-}
-
-.label--selected .bubble-text {
-  color: #fff;
-}
-
-.curly-arrow {
-  position: absolute;
-  z-index: 0;
-  width: 60px;
-  height: 55px;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.curly-arrow--up-right {
-  right: -44px;
-  top: -42px;
-}
-
-.curly-arrow--up {
-  left: 50%;
-  top: -52px;
-  margin-left: -30px;
-}
-
-.bubble-note {
-  display: block;
-  margin: 8px 0 0 18px;
-  padding: 1px 9px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #fff;
-  background: rgb(10 14 28 / 0.62);
-  border-radius: 8px;
 }
 
 /* The pod floor peeking up from the bottom */
@@ -420,6 +277,32 @@ a {
   inset: 14px;
   border: 2px dashed rgb(70 50 20 / 0.55);
   border-radius: 50%;
+}
+
+/* Flying to a section and back (the planets themselves: components/carousel.css):
+   the pod's own chrome fades out as we leave and back in as we arrive. */
+.pod-header,
+.pod-floor,
+.pod .hints {
+  transition: opacity 0.25s ease;
+}
+
+.pod.is-leaving .pod-header,
+.pod.is-leaving .pod-floor,
+.pod.is-leaving .hints {
+  opacity: 0;
+}
+
+.pod.is-arriving .pod-header,
+.pod.is-arriving .pod-floor,
+.pod.is-arriving .hints {
+  animation: pod-chrome-in 0.45s ease 0.3s both;
+}
+
+@keyframes pod-chrome-in {
+  from {
+    opacity: 0;
+  }
 }
 
 /* Controller-style hint bar */
@@ -480,13 +363,13 @@ a {
 
 .section-header {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
   grid-template-areas:
-    'back planet'
-    'title planet';
+    'back'
+    'title';
   align-items: center;
   gap: 14px 20px;
-  margin-bottom: 26px;
+  margin-bottom: 18px;
 }
 
 .back-bubble {
@@ -538,10 +421,15 @@ a {
   outline: none;
 }
 
-.section-planet {
-  grid-area: planet;
-  width: clamp(96px, 16vw, 180px);
-  aspect-ratio: 1 / 1;
+/* In planet view the globe floats in the night scene, no cardboard box */
+.section--planet {
+  max-width: 1280px;
+}
+
+.section--planet .section-main {
+  padding: 0;
+  background: none;
+  box-shadow: none;
 }
 
 /* Corrugated cardboard backdrop */
@@ -877,11 +765,6 @@ a {
    Motion (only when the visitor hasn't asked for less)
    ========================================================= */
 @media (prefers-reduced-motion: no-preference) {
-  .hang {
-    animation: sway 4.2s ease-in-out infinite alternate;
-    animation-delay: var(--sway-delay, 0s);
-  }
-
   .bokeh-light {
     animation: drift 22s ease-in-out infinite alternate;
   }
@@ -889,15 +772,6 @@ a {
   .sticker--slap {
     animation: slap 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
     animation-delay: var(--delay, 0ms);
-  }
-}
-
-@keyframes sway {
-  from {
-    transform: rotate(-2.4deg);
-  }
-  to {
-    transform: rotate(2.4deg);
   }
 }
 
@@ -933,74 +807,104 @@ a {
 }
 
 /* =========================================================
-   Small screens: planets stack in a column
+   "Me" corner: the knitted avatar at the side of the pod
+   ========================================================= */
+.me-corner {
+  position: absolute;
+  right: clamp(8px, 2.5vw, 40px);
+  bottom: clamp(70px, 9vh, 110px);
+  z-index: 4;
+  display: block;
+  width: clamp(130px, 13vw, 190px);
+  aspect-ratio: 3 / 4;
+  color: var(--ink);
+  text-decoration: none;
+  border-radius: 24px;
+}
+
+.me-doll {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.me-tag {
+  position: absolute;
+  top: 10%;
+  left: -46%;
+  padding: 0.12em 0.7em 0.2em;
+  font: 700 clamp(1.4rem, 2vw, 1.9rem) / 1.1 var(--font-display);
+  color: var(--ink);
+  background: #ffd23f;
+  border: 3px solid #8a6a00;
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 4px #fff,
+    0 7px 0 rgb(0 0 0 / 0.35);
+  transform: rotate(-6deg);
+  transition: transform 0.2s ease;
+}
+
+.me-arrow {
+  position: absolute;
+  top: 26%;
+  left: -20%;
+  width: 48px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 2px 0 rgb(0 0 0 / 0.45));
+  transform: rotate(14deg);
+}
+
+.me-corner:hover .me-tag,
+.me-corner:focus-visible .me-tag {
+  transform: rotate(-3deg) scale(1.08);
+}
+
+.me-corner:focus-visible {
+  outline: 3px dashed var(--focus);
+  outline-offset: 6px;
+}
+
+/* =========================================================
+   Small screens: name card on top, the planet carousel under it
+   (carousel sizes are in components/carousel.css)
    ========================================================= */
 @media (max-width: 760px) {
   .pod {
     min-height: auto;
     padding: 16px 16px 120px;
     overflow: visible;
+    overflow-x: clip; /* side planets peek in at the edges, never a sideways scroll */
   }
 
   .pod-header {
     position: static;
-    flex-direction: column;
-    gap: 16px;
   }
 
   .name-card {
     max-width: none;
   }
 
-  .link-stickers {
-    justify-content: flex-start;
-  }
-
-  .pod-main,
-  .planet-row {
+  .pod-main {
     position: static;
-  }
-
-  .planet-row {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 40px;
-    margin-top: 28px;
-  }
-
-  .hang,
-  .hang--center,
-  .hang--small {
-    --planet: clamp(140px, 48vw, 210px);
-    position: relative;
-    left: auto;
-    margin-left: 0;
-    animation: none;
-  }
-
-  .hang-string {
-    height: 26px;
-  }
-
-  .planet-label {
-    transform: translateX(-50%);
-  }
-
-  .label {
-    align-items: center;
-  }
-
-  .bubble-note {
-    margin-left: 0;
-  }
-
-  .curly-arrow--up-right {
-    right: -36px;
   }
 
   .pod-floor {
     display: none;
+  }
+
+  .me-corner {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: 150px;
+    margin: 48px auto 0;
+    transform: translateX(30px);
   }
 
   .hints {
@@ -1008,7 +912,4 @@ a {
     font-size: 0.9rem;
   }
 
-  .section-header {
-    grid-template-columns: 1fr auto;
-  }
 }

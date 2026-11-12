@@ -1,0 +1,81 @@
+/* Blue linen background (loaded after styles.css, so it wins over the old navy).
+   denim-cloth.jpg is Poly Haven's CC0 "Denim Fabric 02" diffuse map, tiled on its own layer
+   with a light saturation boost. */
+:root {
+  /* Fine paper grain, still used by the portal's light haze. */
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='g' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.27 0 0 0 0 0.22 0.36 0 0 0 -0.1'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+body {
+  background-color: #2b4f6e;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* The denim itself, on its own layer so it can be tuned with filters while
+   keeping the weave crisp. */
+.backdrop::before {
+  content: '';
+  position: absolute;
+  inset: -2%;
+  background-image: url('../assets/textures/denim-cloth.jpg');
+  background-size: 440px;
+  filter: saturate(1.15) contrast(1.08);
+}
+
+/* Soft light in the middle and a gentle vignette, like cloth under a lamp */
+.backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse at 50% 36%, rgb(200 225 255 / 0.18), transparent 62%),
+    radial-gradient(ellipse at 50% 50%, transparent 60%, rgb(6 20 48 / 0.32) 100%);
+}
+
+/* Stickers sewn on as felt patches */
+.bg-sticker {
+  position: absolute;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  overflow: visible;
+  z-index: 2;
+  filter: drop-shadow(0 3px 2px rgb(6 20 48 / 0.45));
+}
+
+/* Keep the content above the backdrop */
+.app-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Few patches on narrow screens, where space is tight */
+@media (max-width: 900px) {
+  .bg-sticker--plane,
+  .bg-sticker--mug,
+  .bg-sticker--hi {
+    display: none;
+  }
+
+  .bg-sticker {
+    width: 56px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .bg-sticker {
+    display: none;
+  }
+}
+
+/* While the loading or start screen is up, the site renders (so its 3D warms up) but stays invisible */
+.app-content[data-hidden] {
+  visibility: hidden;
+}

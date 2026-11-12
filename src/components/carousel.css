@@ -1,0 +1,284 @@
+/* =========================================================
+   Pod carousel: the section planets on a turning ring (PlanetCarousel.tsx)
+   Every size is a fraction of --s, the centre planet's diameter. Each planet box
+   is always --s wide and shrinks with transform: scale, so the centre canvas is crisp.
+   ========================================================= */
+.carousel {
+  /* The centre planet is vertically centred between the top of the screen and the
+     hint bar (64px). Wide screens cap its size by width; short ones by height, so
+     the back planet (0.7 s above the middle) stays on screen and the centre tag
+     (0.66 s below) stays clear of the pod floor (11vh) and the hint bar. */
+  --s: max(200px, min(clamp(240px, 33vw, 460px), calc((100vh - 88px) / 1.4), calc(59vh + 24px)));
+  --rx-k: 0.95; /* ring radius in planet sizes (read by the swipe code too) */
+  --rx: calc(var(--s) * var(--rx-k));
+  --ax: 50%; /* centre planet's middle */
+  --ay: calc((100vh - 64px) / 2);
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.carousel-ring {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.orbit {
+  position: absolute;
+  left: calc(var(--ax) - var(--s) / 2);
+  top: calc(var(--ay) - var(--s) / 2);
+  width: var(--s);
+  height: var(--s);
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+}
+
+/* Only the planet's circle and its tag take clicks, never the square box corners
+   or the canvas bleed, so the planets behind stay clickable. */
+.orbit-link {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+  pointer-events: none;
+  -webkit-touch-callout: none;
+}
+
+.orbit-link:focus-visible {
+  outline: none;
+}
+
+.orbit-body,
+.orbit-bob,
+.orbit-planet {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.orbit-planet {
+  border-radius: 50%;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.orbit-planet .globe3d {
+  pointer-events: none;
+}
+
+.orbit-link:focus-visible .orbit-planet {
+  outline: 3px dashed var(--focus);
+  outline-offset: 10px;
+}
+
+/* While its big twin flies to or from the section page, the centre planet hides
+   (a short crossfade at the handover) and holds still so the twin lands exactly on it. */
+.orbit-bob {
+  transition: opacity 0.15s ease;
+}
+
+.orbit.is-away .orbit-bob {
+  opacity: 0;
+  animation-play-state: paused;
+}
+
+.orbit.is-away .orbit-link:focus-visible .orbit-planet {
+  outline-color: transparent;
+}
+
+/* ---------- Labels: cut-paper tag under each planet ---------- */
+.orbit-labels {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.orbit-tag {
+  position: absolute;
+  top: calc(100% + var(--s) * 0.04);
+  left: 50%;
+  z-index: 2;
+  display: block;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+
+.orbit-tag-tilt {
+  display: block;
+  filter: drop-shadow(0 4px 0 rgb(0 0 0 / 0.3)) drop-shadow(0 10px 12px rgb(0 0 0 / 0.28));
+}
+
+/* Orange side tag; the yellow centre face fades in on top. Dark ink on both (AA). */
+.orbit-tag-paper {
+  position: relative;
+  display: block;
+  padding: 0.2em 0.85em 0.28em;
+  font: 700 max(1.25rem, calc(var(--s) * 0.075)) / 1.1 var(--font-display);
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  background-color: #f7a24a;
+  background-image: radial-gradient(rgb(90 40 0 / 0.09) 1px, transparent 1.3px);
+  background-size: 5px 5px;
+  clip-path: polygon(2% 10%, 9% 0, 52% 4%, 94% 0, 100% 16%, 98% 64%, 100% 92%, 90% 100%, 46% 95%, 6% 100%, 0 86%, 1% 40%);
+}
+
+.orbit-tag-hot {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background-color: #ffd23f;
+  background-image: radial-gradient(rgb(120 80 0 / 0.08) 1px, transparent 1.3px);
+  background-size: 5px 5px;
+}
+
+/* running stitch inside the centre tag */
+.orbit-tag-hot::after {
+  content: '';
+  position: absolute;
+  inset: 0.2em 0.34em;
+  border: 2px dashed rgb(27 27 36 / 0.5);
+  border-radius: 0.25em;
+}
+
+.orbit-tag-text {
+  position: relative;
+  display: block;
+}
+
+/* ---------- Note bubble up-right of the centre planet ---------- */
+.orbit-callout {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  pointer-events: none;
+}
+
+/* Drawn in planet sizes: starts behind the tag, swings round the planet's right
+   side and ends on the bubble's bottom edge (0.36, -0.43 from the planet centre). */
+.orbit-connector {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 70%;
+  height: 112%;
+  overflow: visible;
+  fill: none;
+  stroke: #ffd23f;
+  stroke-width: 2.5px;
+  stroke-linecap: round;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.45));
+}
+
+.orbit-connector path {
+  vector-effect: non-scaling-stroke;
+}
+
+.orbit-note {
+  position: absolute;
+  left: 80%;
+  bottom: 93%;
+  display: block;
+  width: max-content;
+  max-width: calc(var(--s) * 0.56);
+  padding: 0.4em 0.85em 0.45em;
+  font: 700 clamp(0.85rem, calc(var(--s) * 0.04), 1.15rem) / 1.25 var(--font-body);
+  font-variant-caps: small-caps;
+  letter-spacing: 0.05em;
+  color: #fff3d6;
+  background: rgb(11 20 40 / 0.88);
+  border: 2px solid #ffd23f;
+  border-radius: 14px;
+  box-shadow: 0 8px 18px rgb(0 0 0 / 0.35);
+}
+
+/* ---------- Gentle idle bob ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .orbit-bob {
+    animation: orbit-bob 3.8s ease-in-out infinite alternate;
+    animation-delay: var(--bob-delay, 0s);
+  }
+}
+
+@keyframes orbit-bob {
+  from {
+    transform: translateY(calc(var(--s) * -0.014));
+  }
+  to {
+    transform: translateY(calc(var(--s) * 0.014));
+  }
+}
+
+/* ---------- Flight to and from a section page (App.tsx, lib/flight.ts) ---------- */
+/* While a flight runs, the pod is a fixed layer under the section page instead of
+   taking up room in the page, and it takes no pointer input. */
+.pod-layer.is-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* The camera moves in towards the planet and to its right: the paper backdrop drifts
+   left and grows a little, the stickers a little more. */
+@media (prefers-reduced-motion: no-preference) {
+  .backdrop {
+    transform-origin: 50% 45%;
+    transition: transform 0.75s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  .bg-sticker {
+    transition: scale 0.75s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  :root[data-view='planet'] .backdrop {
+    transform: translateX(-2.5vw) scale(1.06);
+  }
+
+  :root[data-view='planet'] .bg-sticker {
+    scale: 1.12;
+  }
+
+  :root[data-flying] .backdrop {
+    will-change: transform;
+  }
+
+  :root[data-flying] .bg-sticker {
+    will-change: scale;
+  }
+}
+
+/* ---------- Small screens: same ring, side planets peek in at the edges ---------- */
+@media (max-width: 760px) {
+  .carousel {
+    --s: max(160px, min(70vw, 400px, calc(100vh - 200px)));
+    --rx-k: 0.8;
+    --ay: calc(var(--s) * 0.74 + 8px);
+    position: relative;
+    inset: auto;
+    display: block;
+    height: calc(var(--s) * 1.44 + 24px);
+    /* full bleed past the pod's 16px padding; side planets are cut at the screen edge */
+    margin: 8px -16px 0;
+    overflow-x: clip;
+  }
+
+  .orbit-note {
+    left: 70%;
+    max-width: calc(50vw - var(--s) * 0.2 - 14px);
+  }
+}

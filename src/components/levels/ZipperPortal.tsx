@@ -1,0 +1,465 @@
+import './zipper.css';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
+import { createPortal } from 'react-dom';
+import { AnimatePresence, motion, useIsPresent, useReducedMotion, type Variants } from 'motion/react';
+import type { ZipperPortalProps } from './types';
+
+// A level opens like a pocket on the planet: warm light pours out of it until
+// the screen is a soft blue haze with gold rays, then the level page (a stitched
+// linen sheet with a cardboard label, a taped-on polaroid and a cut-paper Close
+// tag) rises out of the light. Closing sends the page back to the pocket and the
+// light contracts after it.
+
+/* ---------------------------------------------------------
+   Timeline (seconds)
+   --------------------------------------------------------- */
+const LIGHT_IN = 0.45; // light floods out of the pocket
+const CARD_AT = 0.36; // card starts rising (slightly before the light settles)
+const CARD_IN = 0.35; // card rises with a little overshoot
+const CARD_OUT = 0.24; // card shrinks back toward the pocket
+const LIGHT_OUT_AT = 0.1; // light starts contracting
+const LIGHT_OUT = 0.3; // light contracts back into the pocket
+const FADE = 0.15; // reduced motion: plain fades
+
+const EASE_OUT: [number, number, number, number] = [0.2, 0.7, 0.3, 1];
+const EASE_IN: [number, number, number, number] = [0.5, 0, 0.75, 0];
+const EASE_RISE: [number, number, number, number] = [0.34, 1.45, 0.64, 1];
+
+// Root padding (desktop), mirrored from zipper.css, so the card can start exactly at the pocket.
+const PAD_TOP = 64;
+const PAD_BOTTOM = 40;
+
+const DEFAULT_ACCENT = '#c8146a';
+
+// Cut-paper tag with irregular clipped corners, in a 0..100 box stretched to the button.
+const TAG_POINTS = '5,0 93,2 100,24 100,82 95,100 7,97 0,76 0,20';
+
+/** Where the light comes from, in viewport px, and how far it has to reach. */
+interface Geometry {
+  ox: number;
+  oy: number;
+  /** Distance from the pocket to the farthest viewport corner. */
+  reach: number;
+  /** Offset from the card's resting centre to the pocket. */
+  dx: number;
+  dy: number;
+}
+
+/* ---------------------------------------------------------
+   Variants: "closed" is both the starting and the exit state
+   --------------------------------------------------------- */
+const rootFull: Variants = {
+  closed: { opacity: 0, transition: { delay: LIGHT_OUT_AT + LIGHT_OUT - 0.06, duration: 0.08 } },
+  open: { opacity: 1, transition: { duration: 0.01 } },
+};
+
+const rootReduced: Variants = {
+  closed: { opacity: 0, transition: { duration: FADE } },
+  open: { opacity: 1, transition: { duration: FADE } },
+};
+
+const glowFull: Variants = {
+  closed: {
+    scale: 0.03,
+    opacity: 0,
+    transition: {
+      default: { delay: LIGHT_OUT_AT, duration: LIGHT_OUT, ease: EASE_IN },
+      opacity: { delay: LIGHT_OUT_AT + LIGHT_OUT * 0.6, duration: LIGHT_OUT * 0.4 },
+    },
+  },
+  open: {
+    scale: 1,
+    opacity: 1,
+    transition: {
+      default: { duration: LIGHT_IN, ease: EASE_OUT },
+      opacity: { duration: 0.12 },
+    },
+  },
+};
+
+const raysFull: Variants = {
+  closed: { scale: 0.2, opacity: 0, transition: { duration: LIGHT_OUT_AT + LIGHT_OUT * 0.6, ease: EASE_IN } },
+  open: {
+    scale: 1,
+    opacity: 1,
+    transition: {
+      default: { duration: LIGHT_IN + 0.15, ease: EASE_OUT },
+      opacity: { delay: 0.05, duration: 0.4 },
+    },
+  },
+};
+
+const motesFull: Variants = {
+  closed: { opacity: 0, transition: { duration: 0.15 } },
+  open: { opacity: 1, transition: { delay: 0.2, duration: 0.4 } },
+};
+
+// Warm glow right behind the card.
+const haloFull: Variants = {
+  closed: { opacity: 0, transition: { duration: 0.2 } },
+  open: { opacity: 1, transition: { delay: CARD_AT, duration: 0.4 } },
+};
+
+const dialogFull: Variants = {
+  closed: (g: Geometry) => ({
+    x: g.dx,
+    y: g.dy,
+    scale: 0.5,
+    rotate: -8,
+    opacity: 0,
+    transition: {
+      default: { duration: CARD_OUT, ease: EASE_IN },
+      opacity: { delay: CARD_OUT * 0.5, duration: CARD_OUT * 0.5 },
+    },
+  }),
+  open: {
+    x: 0,
+    y: 0,
+    scale: 1,
+    rotate: 0,
+    opacity: 1,
+    transition: {
+      default: { delay: CARD_AT, duration: CARD_IN, ease: EASE_RISE },
+      opacity: { delay: CARD_AT, duration: 0.14 },
+    },
+  },
+};
+
+const dialogReduced: Variants = {
+  closed: { opacity: 0, transition: { duration: FADE } },
+  open: { opacity: 1, transition: { duration: FADE, delay: 0.05 } },
+};
+
+// A few dust motes drifting in the light (percent of the viewport, px, seconds).
+const MOTES = [
+  { left: 14, top: 24, size: 7, dx: 26, dy: -70, dur: 7.5, delay: -1.2 },
+  { left: 27, top: 70, size: 5, dx: -18, dy: -90, dur: 9, delay: -4 },
+  { left: 41, top: 12, size: 4, dx: 30, dy: -40, dur: 6.5, delay: -2.5 },
+  { left: 63, top: 80, size: 6, dx: 20, dy: -110, dur: 10, delay: -6 },
+  { left: 77, top: 30, size: 8, dx: -28, dy: -60, dur: 8, delay: -3.1 },
+  { left: 89, top: 58, size: 5, dx: -16, dy: -80, dur: 7, delay: -0.6 },
+  { left: 53, top: 46, size: 4, dx: 22, dy: -70, dur: 11, delay: -7.5 },
+  { left: 8, top: 86, size: 6, dx: 34, dy: -95, dur: 9.5, delay: -5.2 },
+];
+
+/* ---------------------------------------------------------
+   Page-level side effects while the portal is open
+   --------------------------------------------------------- */
+const PORTAL_ATTR = 'data-zipper-portal';
+
+function lockBodyScroll() {
+  const { body, documentElement } = document;
+  const scrollbar = window.innerWidth - documentElement.clientWidth;
+  const previous = { overflow: body.style.overflow, paddingRight: body.style.paddingRight };
+  body.style.overflow = 'hidden';
+  if (scrollbar > 0) body.style.paddingRight = `${scrollbar}px`;
+  return () => {
+    body.style.overflow = previous.overflow;
+    body.style.paddingRight = previous.paddingRight;
+  };
+}
+
+// Everything else on the page becomes inert, so neither Tab nor a screen
+// reader's virtual cursor can wander behind the dialog.
+function makeBackgroundInert() {
+  const changed: Element[] = [];
+  for (const el of Array.from(document.body.children)) {
+    if (el.hasAttribute(PORTAL_ATTR) || el.hasAttribute('inert')) continue;
+    if (el instanceof HTMLScriptElement || el instanceof HTMLStyleElement || el instanceof HTMLLinkElement) continue;
+    el.setAttribute('inert', '');
+    changed.push(el);
+  }
+  return () => changed.forEach((el) => el.removeAttribute('inert'));
+}
+
+function useModalEnvironment(open: boolean) {
+  // Layout effect: runs before the dialog's own effect moves focus inside,
+  // so `previous` is still the element that opened the portal.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const active = document.activeElement;
+    const previous =
+      active instanceof HTMLElement && active !== document.body && !active.closest(`[${PORTAL_ATTR}]`)
+        ? active
+        : null;
+    const unlockScroll = lockBodyScroll();
+    const restoreInert = makeBackgroundInert();
+    return () => {
+      restoreInert();
+      unlockScroll();
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
+    };
+  }, [open]);
+}
+
+function useViewportSize() {
+  const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
+  useEffect(() => {
+    const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return size;
+}
+
+function getGeometry(origin: ZipperPortalProps['origin'], w: number, h: number): Geometry {
+  const ox = Math.min(Math.max(origin?.x ?? w / 2, 0), w);
+  const oy = Math.min(Math.max(origin?.y ?? h / 2, 0), h);
+  const reach = Math.max(
+    Math.hypot(ox, oy),
+    Math.hypot(w - ox, oy),
+    Math.hypot(ox, h - oy),
+    Math.hypot(w - ox, h - oy),
+  );
+  return { ox, oy, reach, dx: ox - w / 2, dy: oy - (PAD_TOP + h - PAD_BOTTOM) / 2 };
+}
+
+/** A square of radius `r` centred on the pocket. */
+function circleAt(g: Geometry, r: number): CSSProperties {
+  return { left: g.ox - r, top: g.oy - r, width: r * 2, height: r * 2 };
+}
+
+/* ---------------------------------------------------------
+   Focus trap
+   --------------------------------------------------------- */
+const TABBABLE = [
+  'a[href]',
+  'area[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'iframe',
+  'audio[controls]',
+  'video[controls]',
+  'details > summary:first-of-type',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[tabindex]',
+].join(',');
+
+function tabbablesIn(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(TABBABLE)).filter(
+    // getClientRects() is empty for anything not rendered, such as the body of a closed <details>.
+    (el) => el.tabIndex >= 0 && !el.closest('[inert]') && el.getClientRects().length > 0,
+  );
+}
+
+function isBefore(a: Node, b: Node) {
+  return a !== b && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+}
+
+// The heading is part of the cycle so keyboard users can always get back into
+// the scrolling content (arrow keys scroll the box around the focused element).
+function trapTab(event: ReactKeyboardEvent, dialog: HTMLElement, heading: HTMLElement | null) {
+  const stops = heading ? [heading, ...tabbablesIn(dialog)] : tabbablesIn(dialog);
+  event.preventDefault();
+  if (stops.length === 0) return;
+
+  const back = event.shiftKey;
+  const active = document.activeElement;
+  const index = active instanceof HTMLElement ? stops.indexOf(active) : -1;
+  let next: HTMLElement | undefined;
+
+  if (index >= 0) {
+    next = stops[(index + (back ? -1 : 1) + stops.length) % stops.length];
+  } else if (active && dialog.contains(active)) {
+    // Focus is on a container (the dialog or the scroll box): continue in document order.
+    next = back
+      ? [...stops].reverse().find((el) => isBefore(el, active))
+      : stops.find((el) => isBefore(active, el));
+  }
+  next ??= back ? stops[stops.length - 1] : stops[0];
+  next.focus();
+}
+
+/* ---------------------------------------------------------
+   The dialog itself (mounted only while AnimatePresence keeps it)
+   --------------------------------------------------------- */
+function ZipperDialog({
+  origin,
+  kicker,
+  art,
+  color,
+  title,
+  meta,
+  onClose,
+  children,
+}: Omit<ZipperPortalProps, 'open' | 'onExited'>) {
+  const isPresent = useIsPresent();
+  const reduce = useReducedMotion() === true;
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const { w, h } = useViewportSize();
+  const geo = getGeometry(origin, w, h);
+
+  // Focus goes to the heading right away; the scrolling box around it then
+  // answers arrow keys and Page Up/Down.
+  useEffect(() => {
+    if (isPresent) headingRef.current?.focus({ preventScroll: true });
+  }, [isPresent]);
+
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      if (event.nativeEvent.isComposing) return;
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+      return;
+    }
+    if (event.key === 'Tab' && dialogRef.current) {
+      trapTab(event, dialogRef.current, headingRef.current);
+    }
+    // Keys pressed in the dialog belong to it, not to page shortcuts behind it.
+    event.stopPropagation();
+  };
+
+  return (
+    <motion.div
+      className="zp-root"
+      data-zipper-portal=""
+      inert={!isPresent}
+      initial="closed"
+      animate="open"
+      exit="closed"
+      variants={reduce ? rootReduced : rootFull}
+    >
+      {/* The light doubles as the backdrop: clicking it closes the portal. */}
+      <div className="zp-light" aria-hidden="true" onClick={onClose}>
+        <motion.div
+          className="zp-glow"
+          style={circleAt(geo, geo.reach * 1.25)}
+          variants={reduce ? undefined : glowFull}
+        />
+        <motion.div className="zp-rays" style={circleAt(geo, geo.reach)} variants={reduce ? undefined : raysFull}>
+          <div className="zp-rays-spin" />
+        </motion.div>
+        <motion.div className="zp-halo" variants={reduce ? undefined : haloFull} />
+        {reduce ? null : (
+          <motion.div className="zp-motes" variants={motesFull}>
+            {MOTES.map((m, i) => (
+              <span
+                key={i}
+                className="zp-mote"
+                style={
+                  {
+                    left: `${m.left}%`,
+                    top: `${m.top}%`,
+                    width: m.size,
+                    height: m.size,
+                    '--zp-dx': `${m.dx}px`,
+                    '--zp-dy': `${m.dy}px`,
+                    '--zp-dur': `${m.dur}s`,
+                    '--zp-delay': `${m.delay}s`,
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </motion.div>
+        )}
+      </div>
+
+      <motion.div
+        ref={dialogRef}
+        className="zp-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        onKeyDown={onKeyDown}
+        custom={geo}
+        variants={reduce ? dialogReduced : dialogFull}
+      >
+        <div
+          className={art ? 'zp-sheet zp-sheet--art' : 'zp-sheet'}
+          style={{ '--zp-accent': color ?? DEFAULT_ACCENT } as CSSProperties}
+        >
+          {/* felt sheet peeking out behind, the linen page, masking tape */}
+          <span className="zp-back" aria-hidden="true" />
+          <span className="zp-page" aria-hidden="true">
+            <svg className="zp-stitch" focusable="false">
+              <rect x="1.5" y="1.5" width="100%" height="100%" rx="12" />
+            </svg>
+          </span>
+          <span className="zp-tape zp-tape--tl" aria-hidden="true" />
+          <span className="zp-tape zp-tape--bl" aria-hidden="true" />
+
+          <p className="zp-label">{kicker ?? 'Level'}</p>
+
+          <div className="zp-scroll" tabIndex={-1}>
+            <div className="zp-head">
+              <h2 ref={headingRef} id={titleId} className="zp-title" tabIndex={-1}>
+                {title}
+              </h2>
+              {meta ? <p className="zp-ribbon">{meta}</p> : null}
+            </div>
+            <div className="zp-body">{children}</div>
+          </div>
+
+          {art ? (
+            <div className="zp-polaroid" aria-hidden="true">
+              <span className="zp-polaroid-tape zp-polaroid-tape--l" />
+              <span className="zp-polaroid-tape zp-polaroid-tape--r" />
+              <span className="zp-photo">{art}</span>
+            </div>
+          ) : null}
+
+          <button type="button" className="zp-close" onClick={onClose}>
+            <svg className="zp-close-shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+              <polygon className="zp-ring-outer" points={TAG_POINTS} vectorEffect="non-scaling-stroke" />
+              <polygon className="zp-ring-inner" points={TAG_POINTS} vectorEffect="non-scaling-stroke" />
+              <polygon className="zp-close-paper" points={TAG_POINTS} vectorEffect="non-scaling-stroke" />
+            </svg>
+            <svg className="zp-close-stitch" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+              <polygon points={TAG_POINTS} vectorEffect="non-scaling-stroke" />
+            </svg>
+            <span className="zp-close-text">Close</span>
+            <kbd className="zp-key" aria-hidden="true">
+              Esc
+            </kbd>
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+export function ZipperPortal(props: ZipperPortalProps) {
+  const { open, origin, onExited, kicker, art, color, title, meta, onClose, children } = props;
+  useModalEnvironment(open);
+
+  const onExitedRef = useRef(onExited);
+  useEffect(() => {
+    onExitedRef.current = onExited;
+  });
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <AnimatePresence onExitComplete={() => onExitedRef.current?.()}>
+      {open ? (
+        <ZipperDialog
+          key="zipper-portal"
+          origin={origin}
+          kicker={kicker}
+          art={art}
+          color={color}
+          title={title}
+          meta={meta}
+          onClose={onClose}
+        >
+          {children}
+        </ZipperDialog>
+      ) : null}
+    </AnimatePresence>,
+    document.body,
+  );
+}

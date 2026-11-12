@@ -1,6 +1,14 @@
 // All site text lives here, so it can be edited without touching the components.
 // Sources: Johnny's CV (Nov 2026) and Conestoga College's official program outline
 // (Bachelor of Computer Science (Honours), program 1514, "Courses - January 2024").
+// Hackathon logos come from each event's official website (sih.svg is a plain text
+// badge, since that event has no small logo) and only mark where a
+// project was built.
+import stormhacksLogo from './assets/logos/stormhacks.webp';
+import ignitionLogo from './assets/logos/ignitionhacks.png';
+import cuhackingLogo from './assets/logos/cuhacking.svg';
+import hackcanadaLogo from './assets/logos/hackcanada.png';
+import sihLogo from './assets/logos/sih.svg';
 
 export type IconName =
   | 'trophy'
@@ -20,7 +28,8 @@ export type IconName =
   | 'book'
   | 'globe'
   | 'star'
-  | 'chat';
+  | 'chat'
+  | 'chess';
 
 export type PlanetKind = 'knit' | 'stickers' | 'moon' | 'letter';
 export type SectionId = 'experience' | 'projects' | 'about' | 'contact';
@@ -48,6 +57,14 @@ export interface Project {
   summary: string;
   points: string[];
   tags: string[];
+  /** Deployed site. When set, "Visit now!" opens it. */
+  liveUrl?: string;
+  /** Public GitHub repo. Used when there is no liveUrl. Neither set = "Working on it" screen. */
+  repoUrl?: string;
+  /** Logo of the hackathon it was built at; shown on the planet badge. */
+  logo?: string;
+  /** The project's Devpost page. */
+  devpostUrl?: string;
 }
 
 export interface Job {
@@ -88,6 +105,7 @@ export const profile = {
   links: [
     { label: 'GitHub', href: 'https://github.com/DzhanybekZakiriiaev', color: '#2f63a8' },
     { label: 'LinkedIn', href: 'https://www.linkedin.com/in/dzhanybek/', color: '#c8146a' },
+    { label: 'Devpost', href: 'https://devpost.com/DzhanybekZakiriiaev', color: '#0b7a75' },
   ] satisfies LinkDef[],
 };
 
@@ -102,6 +120,8 @@ export const sections: SectionDef[] = [
 export const projects: Project[] = [
   {
     id: 'doggin-around',
+    devpostUrl: 'https://devpost.com/software/doggin-around',
+    logo: stormhacksLogo,
     title: "Doggin' Around",
     badge: '1st of 750+ · StormHacks 2026',
     when: 'Simon Fraser University',
@@ -114,9 +134,13 @@ export const projects: Project[] = [
       'PSNR 43.9 and SSIM 0.996 on 8 held-out synthetic views; runs at 60 FPS in Chrome.',
     ],
     tags: ['PyTorch3D', 'gsplat', 'Three.js'],
+    liveUrl: 'https://itslowkey.tech/',
+    repoUrl: 'https://github.com/DzhanybekZakiriiaev/doggin-around',
   },
   {
     id: 'starry-night',
+    devpostUrl: 'https://devpost.com/software/project-eq9tw5acxhf3',
+    logo: ignitionLogo,
     title: 'Starry Night',
     badge: '1st of 300+ · Ignition Hacks 2026',
     when: 'Toronto light-pollution map',
@@ -129,9 +153,13 @@ export const projects: Project[] = [
       'Contributed to a YOLOv11 light detector and an XGBoost forecast (R² 0.94 on unseen years).',
     ],
     tags: ['Python', 'YOLOv11', 'XGBoost', 'Mapbox'],
+    liveUrl: 'https://starry-night-lp5h.onrender.com/',
+    repoUrl: 'https://github.com/karnamgyal/star-glazers',
   },
   {
     id: 'clascade',
+    devpostUrl: 'https://devpost.com/software/clascade',
+    logo: cuhackingLogo,
     title: 'Clascade',
     badge: '1st of 200+ · Best Use of AI · cuHacking 2026',
     when: 'Carleton University',
@@ -144,9 +172,12 @@ export const projects: Project[] = [
       "The teacher controls every student's screen through Firestore sync.",
     ],
     tags: ['LLMs', 'Firestore', 'Three.js'],
+    repoUrl: 'https://github.com/akashngb/clascade',
   },
   {
     id: 'storydrift',
+    devpostUrl: 'https://devpost.com/software/w-enxoy9',
+    logo: hackcanadaLogo,
     title: 'StoryDrift',
     badge: 'Top 3 of 700+ · HackCanada 2026',
     when: 'Now a startup backed by the SPUR Innovation Centre',
@@ -159,18 +190,25 @@ export const projects: Project[] = [
       'Zero production incidents in its first 6 months.',
     ],
     tags: ['Node.js', 'Prisma', 'MongoDB', 'Auth0'],
+    repoUrl: 'https://github.com/CatherineSusilo/HackCanada2026',
   },
   {
-    id: 'quadreal-hackathon',
-    title: 'Listing photos to market data',
-    badge: '1st · QuadReal Intern Innovation Hackathon 2026',
-    when: 'Company-wide',
-    icon: 'chart',
-    color: '#7a5af0',
+    id: 'love-is-chess',
+    devpostUrl: 'https://devpost.com/software/love-is-chess',
+    logo: sihLogo,
+    title: 'Love is Chess',
+    badge: 'Winner · Toronto Stupid Ideas Hackathon 2026',
+    when: 'Where pieces have feelings',
+    icon: 'chess',
+    color: '#c8146a',
     summary:
-      'Used the open-source Laya System 1 decision model to turn condo and apartment listing photos into market data and trend analysis.',
-    points: [],
-    tags: ['Computer vision', 'Data analysis'],
+      'A chess game where every piece is a character you can chat with, and pieces you neglect can defect.',
+    points: [
+      'Each piece streams its dialogue from Claude and tracks trust and love toward you.',
+      'Play single-player against a bot or LAN multiplayer.',
+    ],
+    tags: ['React', 'Node.js', 'Claude API'],
+    repoUrl: 'https://github.com/DzhanybekZakiriiaev/love-is-chess',
   },
   {
     id: 'smartgym',
@@ -373,3 +411,11 @@ export const interests = [
   'Lightweight machine learning for financial data, such as catching money laundering with fast tree models.',
   'Making AI assistants trustworthy on company data, so the numbers they give match the source.',
 ];
+
+// Contact form. Paste a form-service endpoint here (e.g. a Formspree form URL such
+// as https://formspree.io/f/xxxxxxx) to deliver messages to your inbox without
+// putting your email address on the site. Empty = the form explains it isn't
+// connected yet.
+export const contactForm = {
+  endpoint: '',
+};

@@ -1,0 +1,204 @@
+/* Loading screen: a felt planet being stitched while the 3D planets paint */
+.loading {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 18px;
+  padding: 16px;
+  background: radial-gradient(ellipse at 50% 40%, rgb(190 220 255 / 0.12), transparent 60%);
+  color: var(--paper);
+}
+
+.loading-stage {
+  position: relative;
+  width: min(62vw, 300px);
+  aspect-ratio: 1 / 1;
+}
+
+.loading-planet {
+  position: absolute;
+  inset: 0;
+  filter: drop-shadow(0 18px 26px rgb(0 0 0 / 0.55));
+}
+
+.loading-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.loading-ocean {
+  fill: #2f63a8;
+}
+
+.loading-land {
+  fill: #6f9a3c;
+  stroke: #fff6dc;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  stroke-linecap: round;
+}
+
+.loading-land--2 {
+  fill: #8aa84b;
+}
+
+.loading-land--3 {
+  fill: #c9a25f;
+}
+
+.loading-shade {
+  fill: url(#g-shade);
+  opacity: 0.9;
+}
+
+.loading-guide {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.16);
+  stroke-width: 3;
+  stroke-dasharray: 7 6;
+}
+
+.loading-stitch {
+  fill: none;
+  stroke: #ffd84d;
+  stroke-width: 4;
+  stroke-dasharray: 7 6;
+  stroke-linecap: round;
+}
+
+
+.loading-needle path {
+  fill: #e7ecf3;
+  stroke: #6f7a8a;
+  stroke-width: 1;
+}
+
+.loading-needle-eye {
+  fill: var(--navy-3);
+}
+
+.loading-thread {
+  fill: none;
+  stroke: #ffd84d;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+/* A yarn ball that rolls back and forth under the planet */
+.loading-yarn {
+  position: absolute;
+  left: 50%;
+  bottom: -12%;
+  width: 34px;
+  height: 34px;
+  margin-left: -17px;
+  border-radius: 50%;
+  background:
+    repeating-linear-gradient(35deg, transparent 0 4px, rgb(255 255 255 / 0.35) 4px 6px),
+    repeating-linear-gradient(-50deg, transparent 0 5px, rgb(0 0 0 / 0.15) 5px 7px),
+    #e0418a;
+  box-shadow: inset -4px -5px 0 rgb(0 0 0 / 0.2);
+}
+
+.loading-tag {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: min(84vw, 320px);
+  padding: 14px 26px 16px;
+  color: var(--ink);
+  text-align: center;
+  background-color: var(--paper-warm);
+  background-image: var(--tex-felt);
+  background-size: 300px;
+  background-blend-mode: multiply;
+  clip-path: polygon(4% 0, 100% 3%, 97% 100%, 0 96%);
+  transform: rotate(-2deg);
+}
+
+.loading-title {
+  margin: 0;
+  font: 700 clamp(1.3rem, 4vw, 1.7rem) / 1.15 var(--font-display);
+}
+
+.loading-line {
+  min-height: 1.4em;
+  margin: 0;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.loading-pct {
+  margin: 4px 0 0;
+  padding: 0 12px;
+  font: 700 1rem/1.6 var(--font-display);
+  color: #fff;
+  background: var(--pink);
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .loading-planet {
+    animation: loading-bob 2.4s ease-in-out infinite;
+  }
+
+  .loading-yarn {
+    animation: loading-roll 2.6s ease-in-out infinite;
+  }
+
+  .loading-needle {
+    animation: loading-poke 0.5s ease-in-out infinite;
+  }
+
+  .loading-line {
+    animation: loading-pop 1.3s ease-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-needle-arm {
+    transition: none;
+  }
+}
+
+@keyframes loading-bob {
+  50% {
+    transform: translateY(-8px) rotate(2deg);
+  }
+}
+
+@keyframes loading-roll {
+  0%,
+  100% {
+    transform: translateX(-70px) rotate(-260deg);
+  }
+  50% {
+    transform: translateX(70px) rotate(260deg);
+  }
+}
+
+@keyframes loading-poke {
+  50% {
+    transform: translateX(-4px);
+  }
+}
+
+@keyframes loading-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  15%,
+  85% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}

@@ -144,4 +144,13 @@ export const ICONS: Record<IconName, ReactNode> = {
       <path d="M21 25h22M21 31h14" fill="none" strokeLinecap="round" />
     </g>
   ),
+  chess: (
+    <g stroke={INK} strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round">
+      <path d="M18 52h28v-5H18z" fill="#f6c443" />
+      <path d="M21 47h22l-2-5H23z" fill="#f6c443" />
+      <path d="M24 42c0-6 2-9 3-13l-6 2-3-5 9-11c3-3 6-4 9-4 7 1 11 8 11 17 0 6-1 10-3 14z" fill={WHITE} />
+      <circle cx="33" cy="21" r="1.7" fill={INK} stroke="none" />
+      <path d="M36 32c0-2.2 3-3.2 4-1 1-2.2 4-1.2 4 1 0 2.5-4 4.5-4 4.5s-4-2-4-4.5z" fill="#ff5d8f" strokeWidth="1.6" />
+    </g>
+  ),
 };

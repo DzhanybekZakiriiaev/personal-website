@@ -1,0 +1,70 @@
+/* 3D planet (src/three/Globe3D.tsx).
+   .globe3d fills its parent box and the sphere fills .globe3d exactly. The canvas
+   stage spills past the box by --globe-bleed x box width on every side, so props
+   (rings, caps, moonlets) are not clipped. */
+.globe3d {
+  --globe-bleed: 0.3;
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* lets the stage size its bleed from the box WIDTH (cqw) on all four sides */
+  container-type: inline-size;
+}
+
+/* The flat SVG planet: only when WebGL is missing or the context is lost. */
+.globe3d-fallback,
+.globe3d-hit {
+  position: absolute;
+  inset: 0;
+}
+
+.globe3d-stage {
+  position: absolute;
+  /* fallback for browsers without container units: right for square boxes */
+  inset: calc(var(--globe-bleed) * -100%);
+  inset: calc(var(--globe-bleed) * -100cqw);
+  pointer-events: none;
+  /* not cached yet: stay transparent until the first frame, then fade in */
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.globe3d-stage canvas {
+  display: block;
+}
+
+.globe3d.is-ready .globe3d-stage {
+  opacity: 1;
+}
+
+/* maps were cached (preloadGlobes): no fade, the planet is simply there */
+.globe3d.is-instant .globe3d-stage {
+  opacity: 1;
+  transition: none;
+}
+
+/* Pointer target for badges and drag-to-spin: only the sphere's own circle, never
+   the transparent bleed, so the spill-over never blocks clicks on nearby UI. */
+.globe3d-hit {
+  z-index: 2;
+  border-radius: 50%;
+  pointer-events: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.globe3d.is-interactive .globe3d-hit {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .globe3d-stage {
+    transition-duration: 0.2s;
+  }
+
+  .globe3d.is-interactive .globe3d-hit {
+    cursor: default;
+  }
+}

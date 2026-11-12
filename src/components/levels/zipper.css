@@ -1,0 +1,1158 @@
+/* =========================================================
+   Level portal: warm light pours out of the pocket on the
+   planet, then a crafted "level page" rises out of it
+   ========================================================= */
+.zp-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  /* Room above for the polaroid and below for the Close tag, which stick out
+     of the page. Keep in sync with PAD_TOP / PAD_BOTTOM in ZipperPortal.tsx. */
+  padding: 64px 16px 40px;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+.zp-root[inert] {
+  pointer-events: none;
+}
+
+/* =========================================================
+   The light (decorative; also the click-to-close backdrop)
+   ========================================================= */
+.zp-light {
+  position: absolute;
+  inset: 0;
+}
+
+/* paper grain over the haze, so it sits in the same paper world as the page */
+.zp-light::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--paper-grain, none);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Sized in JS to reach past the farthest corner: a warm white-gold core at the
+   pocket that settles into a soft sky-blue haze over the whole screen. */
+.zp-glow {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle closest-side,
+    #fffef6 0%,
+    #fff3cc 7%,
+    rgb(255 226 150 / 0.95) 14%,
+    rgb(250 240 222 / 0.93) 24%,
+    rgb(214 230 252 / 0.9) 42%,
+    rgb(168 202 246 / 0.88) 62%,
+    rgb(124 170 234 / 0.86) 80%,
+    rgb(110 160 228 / 0) 100%
+  );
+  will-change: transform, opacity;
+}
+
+.zp-rays {
+  position: absolute;
+  -webkit-mask-image: radial-gradient(circle closest-side, transparent 4%, #000 20%, #000 52%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, transparent 4%, #000 20%, #000 52%, transparent 100%);
+  will-change: transform, opacity;
+}
+
+.zp-rays-spin {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  /* gold and white ray sets with different spacing, so the pattern looks irregular */
+  background:
+    repeating-conic-gradient(
+      from 0deg,
+      rgb(255 208 106 / 0) 0deg,
+      rgb(255 208 106 / 0.36) 6deg,
+      rgb(255 208 106 / 0) 12deg,
+      rgb(255 208 106 / 0) 30deg
+    ),
+    repeating-conic-gradient(
+      from 13deg,
+      rgb(255 255 255 / 0) 0deg,
+      rgb(255 255 255 / 0.5) 4deg,
+      rgb(255 255 255 / 0) 8deg,
+      rgb(255 255 255 / 0) 47deg
+    );
+}
+
+/* warm glow right behind the page */
+.zp-halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150vmax;
+  height: 150vmax;
+  margin: -75vmax 0 0 -75vmax;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle closest-side,
+    rgb(255 244 212 / 0.7),
+    rgb(255 226 156 / 0.32) 28%,
+    rgb(255 226 156 / 0) 62%
+  );
+}
+
+.zp-motes {
+  position: absolute;
+  inset: 0;
+}
+
+.zp-mote {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 22%, rgb(255 206 110 / 0.95) 42%, rgb(255 206 110 / 0) 70%);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .zp-rays-spin {
+    animation: zp-spin 90s linear infinite;
+  }
+
+  .zp-mote {
+    animation: zp-drift var(--zp-dur, 8s) ease-in-out var(--zp-delay, 0s) infinite;
+  }
+}
+
+@keyframes zp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes zp-drift {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.6);
+  }
+  25% {
+    opacity: 0.95;
+  }
+  75% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--zp-dx, 0), var(--zp-dy, -60px), 0) scale(1.1);
+  }
+}
+
+/* =========================================================
+   The level page
+   ========================================================= */
+.zp-dialog {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  /* a text column of about 66ch plus the scroll padding */
+  width: min(100%, calc(66ch + 60px));
+  max-height: calc(100vh - 104px);
+  max-height: calc(100dvh - 104px);
+  font-size: 1.0625rem;
+}
+
+.zp-dialog:focus {
+  outline: none;
+}
+
+.zp-sheet {
+  --zp-accent-deep: color-mix(in srgb, var(--zp-accent) 78%, #1b1b24);
+  --zp-accent-tint: color-mix(in srgb, var(--zp-accent) 22%, #fffaf0);
+  --zp-accent-wash: color-mix(in srgb, var(--zp-accent) 30%, transparent);
+  --zp-thread: rgb(110 78 36 / 0.3);
+  position: relative;
+  isolation: isolate; /* keeps the back sheet and page under the content, above the light */
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  padding-bottom: 30px; /* the Close tag hangs over this strip */
+  color: var(--ink);
+}
+
+/* A felt sheet in the level's colour, peeking out at an angle */
+.zp-back {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-color: var(--zp-accent);
+  background-image: linear-gradient(160deg, rgb(255 255 255 / 0.16), rgb(0 0 0 / 0.22)), var(--tex-felt);
+  background-size: auto, 240px;
+  background-blend-mode: normal, multiply;
+  border-radius: 22px;
+  box-shadow: 0 16px 34px rgb(12 34 80 / 0.35);
+  transform: rotate(2.4deg) translate(4px, 6px);
+}
+
+/* Linen page: weave lines over a soft burlap grain, kept light for reading */
+.zp-page {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: #f7efdb;
+  background-image:
+    linear-gradient(rgb(250 244 228 / 0.62), rgb(250 244 228 / 0.62)),
+    repeating-linear-gradient(0deg, rgb(120 90 45 / 0.05) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgb(120 90 45 / 0.045) 0 1px, transparent 1px 4px),
+    var(--tex-burlap);
+  background-size:
+    auto,
+    auto,
+    auto,
+    300px;
+  background-blend-mode: normal, normal, normal, soft-light;
+  border-radius: 18px;
+  box-shadow:
+    inset 0 0 0 2px rgb(255 255 255 / 0.4),
+    0 6px 0 rgb(60 40 15 / 0.28),
+    0 22px 40px rgb(12 34 80 / 0.32);
+}
+
+/* Hand-stitched border in the level's colour (long, round-ended stitches) */
+.zp-stitch {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  width: calc(100% - 21px);
+  height: calc(100% - 21px);
+  overflow: visible;
+}
+
+.zp-stitch rect {
+  fill: none;
+  stroke: var(--zp-accent-deep);
+  stroke-width: 2.5px;
+  stroke-dasharray: 9 6;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+
+/* Masking tape on two corners */
+.zp-tape,
+.zp-polaroid-tape {
+  position: absolute;
+  background-color: rgb(241 228 190 / 0.9);
+  background-image: repeating-linear-gradient(90deg, rgb(255 255 255 / 0.14) 0 2px, transparent 2px 5px);
+  clip-path: polygon(0 12%, 4% 0, 96% 8%, 100% 0, 97% 50%, 100% 100%, 3% 92%, 0 100%, 3% 50%);
+}
+
+.zp-tape {
+  z-index: 2;
+  width: 92px;
+  height: 26px;
+}
+
+.zp-tape--tl {
+  top: -4px;
+  left: -26px;
+  transform: rotate(-38deg);
+}
+
+.zp-tape--bl {
+  bottom: 2px;
+  left: -26px;
+  transform: rotate(36deg);
+}
+
+/* Tan cardboard label strip with the level's kind */
+.zp-label {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  margin: 18px -10px 0;
+  padding: 7px 26px 8px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  color: #2a1708;
+  background-color: #c99a62;
+  background-image: var(--tex-cardboard);
+  background-size: 260px;
+  background-blend-mode: soft-light;
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 0.25),
+    inset 0 -2px 0 rgb(60 35 10 / 0.2);
+  clip-path: polygon(0 10%, 2% 0, 97% 6%, 100% 0, 99% 90%, 100% 100%, 3% 95%, 0 100%);
+  transform: rotate(-0.6deg);
+}
+
+.zp-sheet--art .zp-label {
+  padding-right: 156px; /* clear of the polaroid */
+}
+
+.zp-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 30px 18px;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(110 78 36 / 0.45) transparent;
+}
+
+.zp-sheet--art .zp-scroll {
+  padding-top: 38px; /* the polaroid hangs down to here */
+}
+
+.zp-scroll:focus {
+  outline: none;
+}
+
+.zp-head {
+  margin-bottom: 22px;
+  padding: 4px 0 20px;
+  border-bottom: 2px dashed var(--zp-thread);
+}
+
+/* Title: a big die-cut sticker */
+.zp-title {
+  width: fit-content;
+  max-width: calc(100% - 10px);
+  margin: 0 0 0 5px;
+  padding: 0.12em 0.55em 0.18em;
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 1.1rem + 2.2vw, 2.45rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ink);
+  background: #fff;
+  border: 3px solid var(--zp-accent);
+  border-radius: 16px;
+  box-shadow:
+    0 0 0 5px #fff,
+    0 0 0 6.5px rgb(110 78 36 / 0.2),
+    0 8px 10px rgb(60 40 15 / 0.25);
+  transform: rotate(-1.8deg);
+  overflow-wrap: anywhere;
+}
+
+.zp-title:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.zp-title:focus-visible {
+  outline: 3px solid var(--pink);
+  outline-offset: 9px;
+}
+
+/* Meta line: a small ribbon with notched ends and stitching along both edges */
+.zp-ribbon {
+  width: fit-content;
+  max-width: calc(100% - 12px);
+  margin: 18px 0 0 12px;
+  padding: 6px 26px 7px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+  background:
+    repeating-linear-gradient(90deg, var(--zp-accent-deep) 0 6px, transparent 6px 10px) 16px 3px / calc(100% - 32px)
+      1.5px no-repeat,
+    repeating-linear-gradient(90deg, var(--zp-accent-deep) 0 6px, transparent 6px 10px) 16px calc(100% - 3px) /
+      calc(100% - 32px) 1.5px no-repeat,
+    var(--zp-accent-tint);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 50%, 100% 100%, 0 100%, 12px 50%);
+  transform: rotate(0.6deg);
+}
+
+/* The level's badge art on a polaroid, taped to the top corner */
+.zp-polaroid {
+  position: absolute;
+  top: -58px;
+  right: -14px;
+  z-index: 3;
+  width: 128px;
+  padding: 9px 9px 26px;
+  background: #fff;
+  border-radius: 3px;
+  box-shadow:
+    0 3px 0 rgb(0 0 0 / 0.12),
+    0 10px 18px rgb(20 30 60 / 0.3);
+  transform: rotate(5deg) scale(var(--zp-pol-scale, 1));
+  transform-origin: 100% 0;
+}
+
+.zp-photo {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background-color: #efe6d2;
+  background-color: color-mix(in srgb, var(--zp-accent) 24%, #f6efe0);
+  background-image: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.5), transparent 60%), var(--tex-felt);
+  background-size:
+    auto,
+    180px;
+  background-blend-mode: normal, soft-light;
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.1),
+    inset 0 2px 6px rgb(0 0 0 / 0.18);
+}
+
+.zp-photo > * {
+  max-width: 92%;
+  max-height: 92%;
+}
+
+.zp-polaroid-tape {
+  top: -9px;
+  z-index: 1;
+  width: 50px;
+  height: 18px;
+}
+
+.zp-polaroid-tape--l {
+  left: -15px;
+  transform: rotate(-32deg);
+}
+
+.zp-polaroid-tape--r {
+  right: -15px;
+  transform: rotate(28deg);
+}
+
+/* =========================================================
+   Close: a cut-paper tag with an Esc key cap
+   ========================================================= */
+.zp-close {
+  position: absolute;
+  right: 24px;
+  bottom: -26px;
+  z-index: 3;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 14px 9px 32px;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #3a2410;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 0 rgb(60 40 15 / 0.35));
+  transform: rotate(-2.5deg);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.zp-close-shape,
+.zp-close-stitch {
+  position: absolute;
+  z-index: -1;
+  overflow: visible;
+}
+
+.zp-close-shape {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.zp-close-stitch {
+  top: 5px;
+  left: 5px;
+  width: calc(100% - 10px);
+  height: calc(100% - 10px);
+  opacity: 0.35;
+}
+
+.zp-close-paper {
+  fill: #fbf1d6;
+  stroke: rgb(120 85 40 / 0.45);
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+}
+
+.zp-close-stitch polygon {
+  fill: none;
+  stroke: #6b4a22;
+  stroke-width: 2px;
+  stroke-dasharray: 6 4;
+  stroke-linejoin: round;
+}
+
+/* the tag's punched hole with a paper reinforcement ring */
+.zp-close::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #b89e70;
+  box-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.5),
+    0 0 0 2.5px #fff8e6;
+}
+
+.zp-close-text {
+  position: relative;
+}
+
+.zp-key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 7px;
+  box-shadow:
+    inset 0 -3px 0 rgb(255 255 255 / 0.18),
+    0 2px 0 rgb(0 0 0 / 0.35);
+}
+
+.zp-close:hover .zp-close-stitch,
+.zp-close:focus-visible .zp-close-stitch {
+  opacity: 1;
+}
+
+/* Focus ring drawn under the paper: yellow with an ink edge, visible on both
+   the light and the linen */
+.zp-ring-outer,
+.zp-ring-inner {
+  fill: none;
+  stroke: transparent;
+  stroke-linejoin: round;
+}
+
+.zp-close:focus-visible {
+  outline: 3px solid transparent; /* shows in forced-colors mode */
+}
+
+.zp-close:focus-visible .zp-ring-outer {
+  stroke: var(--ink);
+  stroke-width: 13px;
+}
+
+.zp-close:focus-visible .zp-ring-inner {
+  stroke: var(--focus);
+  stroke-width: 8px;
+}
+
+/* No keyboard on touch-only devices: no key cap */
+@media (hover: none) and (pointer: coarse) {
+  .zp-key {
+    display: none;
+  }
+
+  .zp-close {
+    padding-right: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .zp-close {
+    transition: transform 0.18s ease;
+  }
+
+  .zp-close-stitch {
+    transition: opacity 0.15s ease;
+  }
+
+  .zp-close:hover {
+    transform: rotate(-2.5deg) translateY(-2px);
+  }
+
+  .zp-close:active {
+    transform: rotate(-2.5deg) translateY(2px);
+  }
+}
+
+@media (forced-colors: active) {
+  .zp-close-paper {
+    fill: Canvas;
+    stroke: CanvasText;
+  }
+
+  .zp-close-stitch polygon,
+  .zp-stitch rect {
+    stroke: CanvasText;
+  }
+}
+
+/* =========================================================
+   Content inside the page (from pages/levels.tsx and shared.tsx).
+   Known classes are scoped as .zp-dialog .zp-body .x so they beat
+   the global card styles; bare elements use :where() so classed
+   content (the "Working on it" screen, the Visit tag) keeps its look.
+   ========================================================= */
+.zp-body {
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--ink);
+  overflow-wrap: break-word;
+}
+
+:where(.zp-body) :where(p:not([class])) {
+  max-width: 66ch;
+  margin: 0 0 1em;
+}
+
+:where(.zp-body) > :where(:first-child),
+:where(.zp-body) > :where(:first-child) > :where(:first-child) {
+  margin-top: 0;
+}
+
+:where(.zp-body) > :where(:last-child),
+:where(.zp-body) > :where(:last-child) > :where(:last-child) {
+  margin-bottom: 0;
+}
+
+:where(.zp-body) :where(ul:not([class]), ol:not([class])) {
+  margin: 0 0 1em;
+  padding-left: 1.35em;
+}
+
+:where(.zp-body) :where(ul:not([class]), ol:not([class])) > :where(li + li) {
+  margin-top: 0.3em;
+}
+
+/* Section headings with a felt-strip highlight in the level's colour */
+:where(.zp-body) :where(h3:not([class])) {
+  width: fit-content;
+  margin: 1.6em 0 0.7em;
+  padding: 0 5px;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: linear-gradient(transparent 56%, var(--zp-accent-wash) 56%, var(--zp-accent-wash) 92%, transparent 92%);
+}
+
+.zp-dialog .zp-body a:not([class]) {
+  font-weight: 700;
+  color: var(--pink-dark);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+/* Pink focus rings: the global yellow barely shows on linen */
+.zp-dialog .zp-body a:not([class]):focus-visible,
+.zp-dialog .zp-body summary:focus-visible,
+.zp-dialog .zp-body .text-sticker:focus-visible {
+  outline: 3px solid var(--pink);
+  outline-offset: 3px;
+}
+
+/* ---------- Date / place line: a little dashed stamp ---------- */
+.zp-dialog .zp-body .card-meta {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 14px;
+  padding: 3px 12px 4px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #4d3a22;
+  background: rgb(255 255 255 / 0.55);
+  border: 2px dashed rgb(110 78 36 / 0.4);
+  border-radius: 999px;
+}
+
+/* ---------- Degree line ---------- */
+.zp-dialog .zp-body .card-badge {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--pink-dark);
+}
+
+/* ---------- Bullet points: little stitched felt dots ---------- */
+.zp-dialog .zp-body .card-points {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 1em;
+  padding: 0;
+  list-style: none;
+}
+
+.zp-dialog .zp-body .card-points li {
+  position: relative;
+  padding-left: 28px;
+}
+
+.zp-dialog .zp-body .card-points li::before {
+  content: '';
+  position: absolute;
+  top: 0.38em;
+  left: 4px;
+  width: 14px;
+  height: 14px;
+  background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.4), transparent 60%), var(--zp-accent);
+  border: 1.5px dashed rgb(255 255 255 / 0.9);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1.5px var(--zp-accent),
+    0 1px 2px 1.5px rgb(0 0 0 / 0.22);
+}
+
+/* ---------- Tags: woven fabric labels with a stitched edge ---------- */
+.zp-dialog .zp-body .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 9px;
+  margin: 18px 0 1em;
+  padding: 0;
+  list-style: none;
+}
+
+.zp-dialog .zp-body .tag {
+  --tag-bg: #dfe9fb;
+  --tag-ink: #1d2b4f;
+  --tag-fold: #a9bfe6;
+  padding: 5px 12px 6px 15px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--tag-ink);
+  background-color: var(--tag-bg);
+  background-image: var(--tex-felt);
+  background-size: 140px;
+  background-blend-mode: soft-light;
+  border-radius: 3px;
+  outline: 1.5px dashed color-mix(in srgb, var(--tag-ink) 40%, transparent);
+  outline-offset: -4px;
+  box-shadow:
+    inset 4px 0 0 var(--tag-fold),
+    0 2px 0 rgb(60 40 15 / 0.18),
+    0 3px 6px rgb(0 0 0 / 0.12);
+  transform: rotate(-1deg);
+}
+
+.zp-dialog .zp-body .tag:nth-child(3n + 2) {
+  --tag-bg: #fbe1eb;
+  --tag-ink: #5a1636;
+  --tag-fold: #eaa9c4;
+  transform: rotate(1deg);
+}
+
+.zp-dialog .zp-body .tag:nth-child(3n + 3) {
+  --tag-bg: #dff2e1;
+  --tag-ink: #24452c;
+  --tag-fold: #a3d0aa;
+  transform: rotate(-0.5deg);
+}
+
+/* ---------- GPA: a ribbon banner pinned with a rosette ---------- */
+.zp-dialog .zp-body .gpa {
+  position: relative;
+  display: block;
+  width: fit-content;
+  max-width: calc(100% - 30px);
+  margin: 12px 0 24px 30px;
+  padding: 9px 30px 10px 38px;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+  background:
+    repeating-linear-gradient(90deg, rgb(138 106 0 / 0.55) 0 6px, transparent 6px 10px) 30px 4px / calc(100% - 58px)
+      1.5px no-repeat,
+    repeating-linear-gradient(90deg, rgb(138 106 0 / 0.55) 0 6px, transparent 6px 10px) 30px calc(100% - 4px) /
+      calc(100% - 58px) 1.5px no-repeat,
+    linear-gradient(to bottom right, #ffe9a3 50%, transparent 50%) right top / 14px 50% no-repeat,
+    linear-gradient(to top right, #ffe9a3 50%, transparent 50%) right bottom / 14px 50% no-repeat,
+    linear-gradient(#ffe9a3, #ffe9a3) left top / calc(100% - 14px) 100% no-repeat;
+  border-radius: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 3px 0 rgb(60 40 15 / 0.22));
+  transform: rotate(-1.5deg);
+}
+
+/* the rosette: pleated pink ring, white stitched band, gold centre */
+.zp-dialog .zp-body .gpa::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -28px;
+  z-index: 1;
+  width: 56px;
+  height: 56px;
+  margin-top: -28px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      #ffd54a 0 9px,
+      #e3a400 9px 10.5px,
+      #fffdf7 10.5px 15.5px,
+      rgb(255 255 255 / 0) 16px
+    ),
+    repeating-conic-gradient(var(--pink) 0 12deg, #ec4f97 12deg 24deg);
+  box-shadow:
+    0 0 0 2px #fff,
+    0 2px 3px 2px rgb(0 0 0 / 0.2);
+}
+
+/* the rosette's two ribbon tails */
+.zp-dialog .zp-body .gpa::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -16px;
+  z-index: 0;
+  width: 32px;
+  height: 40px;
+  background: linear-gradient(90deg, #8e0c4b 50%, #a8105a 50%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 78% 84%, 56% 100%, 56% 12%, 44% 12%, 44% 100%, 22% 84%, 0 100%);
+  transform: rotate(6deg);
+}
+
+/* ---------- Course groups: felt folders that unfold ---------- */
+.zp-dialog .zp-body .course-groups {
+  display: grid;
+  gap: 28px;
+  margin: 26px 0 1em;
+}
+
+.zp-dialog .zp-body .course-group {
+  position: relative;
+  background-color: #efe3c6;
+  background-color: color-mix(in srgb, var(--zp-accent) 14%, #efe3c6);
+  background-image: var(--tex-felt);
+  background-size: 220px;
+  background-blend-mode: soft-light;
+  border-radius: 4px 14px 14px;
+  outline: 2px dashed color-mix(in srgb, var(--zp-accent-deep) 50%, transparent);
+  outline-offset: -6px;
+  box-shadow:
+    0 4px 0 rgb(60 40 15 / 0.2),
+    0 8px 14px rgb(0 0 0 / 0.1);
+}
+
+/* the folder's tab */
+.zp-dialog .zp-body .course-group::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% - 1px);
+  left: 0;
+  width: min(46%, 170px);
+  height: 14px;
+  background: inherit;
+  border-radius: 10px 14px 0 0;
+  clip-path: polygon(0 0, 86% 0, 100% 100%, 0 100%);
+}
+
+.zp-dialog .zp-body .course-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 10px 14px 10px 18px;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink);
+  list-style: none;
+  cursor: pointer;
+  border-radius: 4px 14px 14px;
+}
+
+.zp-dialog .zp-body .course-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.zp-dialog .zp-body .course-group[open] > summary {
+  border-bottom: 2px dashed rgb(110 78 36 / 0.3);
+  border-radius: 4px 14px 0 0;
+}
+
+.zp-dialog .zp-body .course-count {
+  margin-right: auto;
+  font-weight: 500;
+  color: #4a4a55;
+}
+
+/* pink felt +/- button with a white running stitch */
+.zp-dialog .zp-body .course-group > summary::after {
+  content: '+';
+  content: '+' / '';
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background-color: var(--pink);
+  background-image: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.3), transparent 60%), var(--tex-felt);
+  background-size: auto, 120px;
+  background-blend-mode: normal, multiply;
+  border: 1.5px dashed rgb(255 255 255 / 0.85);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--pink),
+    0 2px 0 2px rgb(90 10 50 / 0.35);
+}
+
+.zp-dialog .zp-body .course-group[open] > summary::after {
+  content: '\2212';
+  content: '\2212' / '';
+}
+
+/* the paper insert inside an open folder */
+.zp-dialog .zp-body .course-list {
+  display: grid;
+  gap: 0;
+  margin: 10px 12px 12px;
+  padding: 2px 16px 6px;
+  list-style: none;
+  background: #fffaf0;
+  border-radius: 10px;
+  box-shadow:
+    inset 0 0 0 1px rgb(110 78 36 / 0.15),
+    0 2px 0 rgb(60 40 15 / 0.12);
+}
+
+.zp-dialog .zp-body .course-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px 12px;
+  padding: 12px 0;
+  border-top: 2px dashed rgb(110 78 36 / 0.2);
+}
+
+.zp-dialog .zp-body .course-list li:first-child {
+  border-top: 0;
+}
+
+.zp-dialog .zp-body .course-title {
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+/* course codes: tiny paper tags with a punched hole */
+.zp-dialog .zp-body .course-code {
+  align-self: start;
+  padding: 1px 8px 2px 17px;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.45;
+  white-space: nowrap;
+  color: #3d3d48;
+  background:
+    radial-gradient(circle at 8px 50%, #fffaf0 0 2.4px, rgb(110 78 36 / 0.5) 2.4px 3.4px, transparent 3.6px),
+    #fff;
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px rgb(110 78 36 / 0.3),
+    0 1px 2px rgb(0 0 0 / 0.15);
+  transform: rotate(2deg);
+}
+
+.zp-dialog .zp-body .course-summary {
+  grid-column: 1 / -1;
+  font-size: 0.97rem;
+  line-height: 1.55;
+  color: #33333f;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .zp-dialog .zp-body .course-group[open] > .course-list {
+    animation: zp-unfold 0.28s cubic-bezier(0.2, 0.8, 0.3, 1.1) both;
+    transform-origin: 50% 0;
+  }
+}
+
+@keyframes zp-unfold {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(0.92);
+  }
+}
+
+/* ---------- Skills ---------- */
+.zp-dialog .zp-body .skills {
+  display: grid;
+  gap: 18px;
+  margin: 0;
+}
+
+.zp-dialog .zp-body .skill-group {
+  padding-bottom: 16px;
+  border-bottom: 2px dashed var(--zp-thread);
+}
+
+.zp-dialog .zp-body .skill-group:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.zp-dialog .zp-body .skill-group dt {
+  width: fit-content;
+  margin: 0 0 10px;
+  padding: 0 5px;
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  font-weight: 600;
+  line-height: 1.3;
+  background: linear-gradient(transparent 56%, var(--zp-accent-wash) 56%, var(--zp-accent-wash) 92%, transparent 92%);
+}
+
+.zp-dialog .zp-body .skill-group dd {
+  margin: 0;
+}
+
+.zp-dialog .zp-body .skill-group .tags {
+  margin: 0;
+}
+
+/* ---------- Word stickers (outside links) ---------- */
+.zp-dialog .zp-body .link-stickers--inline {
+  gap: 16px;
+  margin: 22px 0 8px;
+  padding: 4px;
+}
+
+/* =========================================================
+   Small screens (320px and up)
+   ========================================================= */
+@media (max-width: 520px) {
+  .zp-root {
+    padding: 48px 12px 38px;
+  }
+
+  .zp-dialog {
+    max-height: calc(100vh - 86px);
+    max-height: calc(100dvh - 86px);
+  }
+
+  .zp-sheet {
+    padding-bottom: 28px;
+  }
+
+  .zp-back {
+    border-radius: 18px;
+    transform: rotate(1.6deg) translate(2px, 4px);
+  }
+
+  .zp-page {
+    border-radius: 16px;
+  }
+
+  .zp-stitch {
+    top: 6px;
+    left: 6px;
+    width: calc(100% - 15px);
+    height: calc(100% - 15px);
+  }
+
+  .zp-tape {
+    width: 70px;
+    height: 22px;
+  }
+
+  .zp-tape--tl,
+  .zp-tape--bl {
+    left: -20px;
+  }
+
+  .zp-label {
+    margin: 14px -6px 0;
+    padding: 6px 18px 7px;
+    font-size: 1rem;
+  }
+
+  .zp-sheet--art .zp-label {
+    padding-right: 100px;
+  }
+
+  .zp-polaroid {
+    --zp-pol-scale: 0.7;
+    top: -40px;
+    right: -6px;
+  }
+
+  .zp-scroll {
+    padding: 18px 16px 14px;
+  }
+
+  .zp-sheet--art .zp-scroll {
+    padding-top: 22px;
+  }
+
+  .zp-close {
+    right: 14px;
+    bottom: -24px;
+    min-height: 48px;
+    font-size: 1.15rem;
+  }
+
+  .zp-dialog .zp-body .gpa {
+    padding-right: 24px;
+    font-size: 1rem;
+  }
+
+  .zp-dialog .zp-body .course-list {
+    margin-inline: 8px;
+    padding-inline: 12px;
+  }
+}
+
+/* Short screens (landscape phones): a smaller polaroid and less headroom */
+@media (max-height: 520px) {
+  .zp-root {
+    padding-top: 42px;
+  }
+
+  .zp-dialog {
+    max-height: calc(100vh - 80px);
+    max-height: calc(100dvh - 80px);
+  }
+
+  .zp-polaroid {
+    --zp-pol-scale: 0.6;
+    top: -34px;
+  }
+
+  .zp-label {
+    margin-top: 10px;
+  }
+
+  .zp-sheet--art .zp-label {
+    padding-right: 96px;
+  }
+
+  .zp-sheet--art .zp-scroll {
+    padding-top: 22px;
+  }
+
+  .zp-title {
+    font-size: 1.5rem;
+  }
+}
