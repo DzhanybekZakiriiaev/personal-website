@@ -355,10 +355,10 @@ function cockpitPose(p: Pose, t: number) {
   p.hipZ = lerp(p.hipZ, -0.1, turn);
   // Near mitt off the stick: elbow out, forearm up beside the head, wagging.
   p.lFree = wave;
-  p.lOut = lerp(p.lOut, 2.1, wave);
+  p.lOut = lerp(p.lOut, 2.25, wave);
   p.lFwd = lerp(p.lFwd, 0.1, wave);
   p.lBend = lerp(p.lBend, 0.1, wave);
-  p.lLift = (0.55 + 0.3 * wag) * wave;
+  p.lLift = (0.45 + 0.3 * wag) * wave;
   p.squash += 0.015 * wag * wave;
 }
 
