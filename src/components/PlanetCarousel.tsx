@@ -257,6 +257,8 @@ function OrbitPlanet({
                   pocketOpen={globe?.pocketOpen ?? false}
                   onPocketOpened={globe?.onPocketOpened}
                   onPocketClosed={globe?.onPocketClosed}
+                  onCentreBadge={globe?.onCentre}
+                  onBadgePoint={globe?.onBadgePoint}
                 />
               </span>
             </span>

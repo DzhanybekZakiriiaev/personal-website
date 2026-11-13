@@ -12,7 +12,7 @@
   container-type: inline-size;
 }
 
-/* The flat SVG planet: only when WebGL is missing or the context is lost. */
+/* The flat SVG planet: only when WebGL is missing or keeps failing. */
 .globe3d-fallback,
 .globe3d-hit {
   position: absolute;
@@ -56,7 +56,8 @@
 .globe3d.is-interactive .globe3d-hit {
   pointer-events: auto;
   cursor: grab;
-  touch-action: pan-y;
+  /* the planet turns every way, so it keeps vertical swipes too */
+  touch-action: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -16,7 +16,10 @@ import './globe.css';
 // felt toy in a night garden (warm key light, cool rim, orange glow from a tent).
 // On section pages every level is a badge sewn into the surface inside its own
 // zipper ring; the selected one turns to FRONT_SPOT and can open as a glowing pocket.
-// The flat SVG <Planet> appears only when WebGL is missing or the context is lost.
+// Dragging turns the planet freely about any axis; the badge nearest the front
+// becomes the selected one and settles onto FRONT_SPOT when it comes to rest.
+// A lost WebGL context is waited out or rebuilt; the flat SVG <Planet> appears only
+// when WebGL is missing or keeps failing.
 
 type Detail = 'pod' | 'hero';
 type Loop = 'always' | 'demand' | 'never';
@@ -36,8 +39,17 @@ const POCKET_OMEGA = 14; // locks on faster while a pocket opens
 const INTRO_SWING = 0.5; // rad the hero planet swings in from on first show
 const WOBBLE = 2.6 * DEG; // idle twist about the selected badge (keeps it on FRONT_SPOT)
 const BOB = 0.014;
-const DRAG_RETURN_S = 2.5;
 const CLICK_SLOP_PX = 6;
+// Drag: the surface under the pointer follows it (2 / box width = exact at the centre).
+const DRAG_PER_PX = 1.9;
+const COAST_DAMP = 2.6; // 1/s, how fast a flick dies away
+const COAST_MAX_S = 1.4; // then the nearest badge settles onto FRONT_SPOT
+const COAST_SETTLE_W = 0.55; // rad/s: slow enough to settle straight away
+const CENTRE_HYSTERESIS = 0.012; // a badge must be this much nearer the front to take over
+// Lost WebGL context (phones drop them in the background or when memory runs low):
+// wait this long for the browser to give it back, then build a new one.
+const RESTORE_WAIT_MS = 1200;
+const MAX_REBUILDS = 4; // per minute; after that the flat planet stands in
 
 const BADGE_EXIT_MS = 420; // badges sink back into the fabric before they are dropped
 const BADGE_SINK = 0.045; // how far (in radii) the badge layer sinks when hidden
@@ -848,8 +860,11 @@ const scratchDir = new THREE.Vector3();
 const scratchFront = new THREE.Vector3();
 const scratchPocket = new THREE.Vector3();
 const scratchEuler = new THREE.Euler();
-const scratchQuat = new THREE.Quaternion();
 const scratchWobble = new THREE.Quaternion();
+const scratchGoal = new THREE.Quaternion();
+const scratchTurn = new THREE.Vector3();
+const scratchError = new THREE.Vector3();
+const scratchPoint = new THREE.Vector3();
 
 interface Fit {
   frac: number; // sphere diameter / canvas width
@@ -887,8 +902,52 @@ function spring(x: number, v: number, target: number, omega: number, dt: number)
   return [target + (d + k) * e, (v - omega * k) * e];
 }
 
-function nearestAngle(angle: number, to: number): number {
-  return angle + TWO_PI * Math.round((to - angle) / TWO_PI);
+/*
+ * Orientation maths for the free turn. Rotations are "rotation vectors" (axis x angle)
+ * in the planet's parent (tilted) frame; an orientation turned by v is R(v) * q.
+ */
+const turnAxis = new THREE.Vector3();
+const turnQuat = new THREE.Quaternion();
+const diffQuat = new THREE.Quaternion();
+
+/** q = R(v) * q */
+function rotateBy(q: THREE.Quaternion, v: THREE.Vector3) {
+  const angle = v.length();
+  if (angle < 1e-9) return;
+  turnQuat.setFromAxisAngle(turnAxis.copy(v).divideScalar(angle), angle);
+  q.premultiply(turnQuat).normalize();
+}
+
+/** The rotation vector that turns orientation `from` into `to` (the short way round). */
+function turnBetween(from: THREE.Quaternion, to: THREE.Quaternion, out: THREE.Vector3): THREE.Vector3 {
+  const d = diffQuat.copy(from).invert().premultiply(to);
+  if (d.w < 0) d.set(-d.x, -d.y, -d.z, -d.w);
+  const s = Math.sqrt(Math.max(0, 1 - d.w * d.w));
+  if (s < 1e-7) return out.set(0, 0, 0);
+  return out.set(d.x, d.y, d.z).multiplyScalar((2 * Math.acos(Math.min(1, d.w))) / s);
+}
+
+/** The rotation vector of the shortest turn taking unit direction `a` onto `b`. */
+function arcBetween(a: THREE.Vector3, b: THREE.Vector3, out: THREE.Vector3): THREE.Vector3 {
+  out.crossVectors(a, b);
+  const s = out.length();
+  const c = a.dot(b);
+  if (s < 1e-7) return c > 0 ? out.set(0, 0, 0) : out.set(0, Math.PI, 0);
+  return out.multiplyScalar(Math.atan2(s, c) / s);
+}
+
+/**
+ * One critically damped spring step on an orientation: `error` is the turn still to
+ * go, `w` the angular velocity (updated in place). Writes the turn to make now.
+ */
+function springTurn(error: THREE.Vector3, w: THREE.Vector3, omega: number, dt: number, out: THREE.Vector3) {
+  const e = Math.exp(-omega * dt);
+  for (const c of ['x', 'y', 'z'] as const) {
+    const x = -error[c];
+    const k = (w[c] + omega * x) * dt;
+    out[c] = (x + k) * e - x;
+    w[c] = (w[c] - omega * k) * e;
+  }
 }
 
 /* ------------------------------------------------------------ helpers */
@@ -935,8 +994,12 @@ class Boundary extends Component<{ onError?: () => void; children: ReactNode }, 
 
 interface DragState {
   active: boolean;
-  offset: number; // radians of yaw since the drag started
-  velocity: number; // rad/s
+  /** Turn the pointer made since the scene last looked, in radians: x from sideways movement, y from up/down. */
+  dx: number;
+  dy: number;
+  /** Smoothed pointer speed, rad/s, for the flick after letting go. */
+  vx: number;
+  vy: number;
 }
 
 // Pocket timeline, written by the scene each frame and read by the badge, zipper and pocket parts.
@@ -1238,8 +1301,13 @@ interface SceneProps {
   onCompiled: () => void;
   onReady: () => void;
   onLost: () => void;
+  onRestored: () => void;
   onPocketOpened: () => void;
   onPocketClosed: () => void;
+  /** A drag brought another badge nearest the front. */
+  onCentre: (index: number) => void;
+  /** The selected badge's centre on screen, as fractions of the sphere's box; visible = facing the viewer. */
+  onBadgePoint: (x: number, y: number, visible: boolean) => void;
 }
 
 function Scene(p: SceneProps) {
@@ -1254,6 +1322,7 @@ function Scene(p: SceneProps) {
   const fit = useRef<Fit>({ frac: 1 / (1 + 2 * p.bleed), aspect: 1, distance: 9 });
   const pocket = useMemo(newPocketAnim, []);
   const onLost = useLatest(p.onLost);
+  const onRestored = useLatest(p.onRestored);
   const onReady = useLatest(p.onReady);
 
   // Solve the camera distance so the sphere's silhouette is exactly the box width:
@@ -1277,13 +1346,23 @@ function Scene(p: SceneProps) {
     invalidate();
   }, [camera, size.width, size.height, p.bleed, p.hitRef, invalidate]);
 
-  // Context loss: hand over to the SVG planet.
+  // Context loss (a phone in the background, low memory, too many contexts): three
+  // asks the browser to give the context back and rebuilds its GPU copies when it
+  // does; the globe rebuilds the canvas if that takes too long.
   useLayoutEffect(() => {
     const canvas = gl.domElement;
     const lost = () => onLost.current();
+    const restored = () => {
+      onRestored.current();
+      invalidate();
+    };
     canvas.addEventListener('webglcontextlost', lost);
-    return () => canvas.removeEventListener('webglcontextlost', lost);
-  }, [gl, onLost]);
+    canvas.addEventListener('webglcontextrestored', restored);
+    return () => {
+      canvas.removeEventListener('webglcontextlost', lost);
+      canvas.removeEventListener('webglcontextrestored', restored);
+    };
+  }, [gl, onLost, onRestored, invalidate]);
 
   const lights = useDisposable(() => {
     const list = createLights();
@@ -1399,20 +1478,30 @@ function Scene(p: SceneProps) {
     invalidate();
   }, [invalidate, p.loop, p.selected, p.badgeTextures, p.reduced, p.excited, p.surface, p.pocketOpen, p.leaving]);
 
+  const onCentre = useLatest(p.onCentre);
+  const onBadgePoint = useLatest(p.onBadgePoint);
   const motion = useRef({
+    /** Orientation without the idle wobble, in the tilted frame. */
+    q: new THREE.Quaternion(),
+    /** Angular velocity in the tilted frame, rad/s. */
+    w: new THREE.Vector3(),
+    // free spin (no badges), as Euler angles
     yaw: 0,
-    yawV: 0,
     pitch: FREE_PITCH,
     pitchV: 0,
+    roll: 0,
+    rollV: 0,
     spin: SPIN_CALM,
     wobble: 0,
     t: 0,
     mode: 'spring' as 'spring' | 'drag' | 'coast',
-    dragBase: 0,
-    coastV: 0,
+    /** upright: the badge turns to the front with the poles up (tabs, keys, clicks); nearest: the shortest turn (after a drag). */
+    aim: 'upright' as 'upright' | 'nearest',
+    aimIndex: -1,
+    /** The badge nearest the front while dragging (reported to the page, which selects it). */
+    centre: -1,
     coastT: 0,
     lastSelected: -1,
-    returnNow: false,
     started: false,
     spun: false, // has spun freely on screen (so badges arriving later ease in, no intro swing)
     lastTarget: new THREE.Vector3(0, 0, 1),
@@ -1420,10 +1509,11 @@ function Scene(p: SceneProps) {
     badgeIn: 0, // 0 = badge layer sunk into the fabric, 1 = out
     readySent: false,
     pushed: false,
+    point: { x: -1, y: -1, visible: false },
   });
 
   // Runs before the badge/zipper/pocket frames (priority -1 keeps auto-rendering on).
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const s = motion.current;
     if (!s.readySent) {
       s.readySent = true;
@@ -1486,95 +1576,150 @@ function Scene(p: SceneProps) {
     // ---- orientation
     let wobble = 0;
     let target: THREE.Vector3 | null = null;
+    const spots = layout.spots;
     if (badgeMode) {
-      // aim the (lifted) selected badge's centre exactly at FRONT_SPOT
-      target = frontSpotWorld(fit.current, BADGE_R + BADGE_LIFT, scratchFront).normalize().applyAxisAngle(Z_AXIS, -TILT);
-      s.lastTarget.copy(target);
-      const goal = solveOrientation(layout.spots[p.selected].vec, target);
-      let ty = nearestAngle(goal.yaw, s.yaw);
+      // the (lifted) badge centre goes exactly onto FRONT_SPOT
+      const front = frontSpotWorld(fit.current, BADGE_R + BADGE_LIFT, scratchFront).normalize().applyAxisAngle(Z_AXIS, -TILT);
+      target = front;
+      s.lastTarget.copy(front);
+      const upright = (i: number, out: THREE.Quaternion) => {
+        const g = solveOrientation(spots[i].vec, front);
+        return out.setFromEuler(scratchEuler.set(g.pitch, g.yaw, 0, 'XYZ'));
+      };
       if (!s.started) {
         s.started = true;
+        s.mode = 'spring';
+        s.aim = 'upright';
+        s.aimIndex = p.selected;
+        s.centre = p.selected;
+        s.lastSelected = p.selected;
+        s.point.x = -1;
         if (s.spun && !p.reduced) {
           // badges arriving on a planet that was spinning on screen: carry its spin
           // into the spring, which then eases it round to the selected badge
-          s.mode = 'spring';
-          s.yawV = s.spin;
-          s.pitchV = 0;
+          s.q.setFromEuler(scratchEuler.set(s.pitch, s.yaw, s.roll, 'XYZ'));
+          s.w.set(0, Math.cos(s.pitch), Math.sin(s.pitch)).multiplyScalar(s.spin);
         } else {
-          s.yaw = p.reduced ? ty : ty - INTRO_SWING;
-          s.pitch = goal.pitch;
-          s.yawV = 0;
-          s.pitchV = 0;
+          const g = solveOrientation(spots[p.selected].vec, front);
+          s.q.setFromEuler(scratchEuler.set(g.pitch, p.reduced ? g.yaw : g.yaw - INTRO_SWING, 0, 'XYZ'));
+          s.w.set(0, 0, 0);
         }
       }
-      if (s.lastSelected !== p.selected) s.returnNow = s.mode !== 'spring'; // picked a tab mid-drag
-      s.lastSelected = p.selected;
+      if (s.lastSelected !== p.selected) {
+        s.lastSelected = p.selected;
+        // chosen with the tabs, the keys or a click (not the drag's own report):
+        // turn it to the front the tidy way, poles up
+        if (p.selected !== s.centre) {
+          s.aim = 'upright';
+          s.aimIndex = p.selected;
+          s.centre = p.selected;
+          if (s.mode === 'coast') s.mode = 'spring';
+        }
+      }
       const d = p.drag;
 
       if (p.reduced) {
-        s.yaw = ty;
-        s.pitch = goal.pitch;
-        s.yawV = 0;
-        s.pitchV = 0;
+        upright(p.selected, s.q);
+        s.w.set(0, 0, 0);
         s.mode = 'spring';
+        s.aim = 'upright';
+        s.aimIndex = p.selected;
+        s.centre = p.selected;
         s.wobble = 0;
+        d.dx = 0;
+        d.dy = 0;
       } else {
         const omega = P.active ? POCKET_OMEGA : SETTLE_OMEGA;
-        if (P.active && s.mode !== 'spring') {
-          s.mode = 'spring'; // the pocket locks the planet
-          ty = nearestAngle(goal.yaw, s.yaw);
-        }
-        if (d.active && !P.active) {
-          if (s.mode !== 'drag') {
-            s.mode = 'drag';
-            s.dragBase = s.yaw - d.offset;
+        if (P.active) {
+          // the pocket locks the planet onto the selected badge
+          s.mode = 'spring';
+          if (s.aimIndex !== p.selected) {
+            s.aim = 'upright';
+            s.aimIndex = p.selected;
+            s.centre = p.selected;
           }
-          s.yaw = s.dragBase + d.offset;
-          s.yawV = 0;
-        } else if (s.mode === 'drag') {
-          s.mode = 'coast';
-          s.coastV = d.velocity;
-          s.coastT = 0;
+          d.dx = 0;
+          d.dy = 0;
+        } else if (d.active || s.mode === 'drag') {
+          // the pointer's turn since the last frame, about the screen's own axes
+          rotateBy(s.q, scratchTurn.set(d.dy, d.dx, 0).applyAxisAngle(Z_AXIS, -TILT));
+          d.dx = 0;
+          d.dy = 0;
+          s.w.set(d.vy, d.vx, 0).applyAxisAngle(Z_AXIS, -TILT);
+          if (d.active) s.mode = 'drag';
+          else {
+            // let go: carry on with the flick
+            s.mode = 'coast';
+            s.coastT = 0;
+          }
         }
         if (s.mode === 'coast') {
-          s.yaw += s.coastV * dt;
-          s.coastV *= Math.exp(-2.6 * dt);
+          rotateBy(s.q, scratchTurn.copy(s.w).multiplyScalar(dt));
+          s.w.multiplyScalar(Math.exp(-COAST_DAMP * dt));
           s.coastT += dt;
-          if (s.coastT >= DRAG_RETURN_S || s.returnNow) {
-            s.mode = 'spring';
-            s.returnNow = false;
-            s.yawV = s.coastV;
-            ty = nearestAngle(goal.yaw, s.yaw);
-          }
         }
-        if (s.mode === 'spring') [s.yaw, s.yawV] = spring(s.yaw, s.yawV, ty, omega, dt);
-        [s.pitch, s.pitchV] = spring(s.pitch, s.pitchV, goal.pitch, omega, dt);
-        const settled =
-          !P.active &&
-          s.mode === 'spring' &&
-          Math.abs(s.yaw - ty) < 0.02 &&
-          Math.abs(s.yawV) < 0.05 &&
-          Math.abs(s.pitch - goal.pitch) < 0.02;
+        if (s.mode !== 'spring') {
+          // which badge is nearest the front now? (a little hysteresis against flicker)
+          let best = s.centre >= 0 && s.centre < spots.length ? s.centre : p.selected;
+          let bestScore = scratchDir.copy(spots[best].vec).applyQuaternion(s.q).dot(front) + CENTRE_HYSTERESIS;
+          for (let i = 0; i < spots.length; i += 1) {
+            if (i === best) continue;
+            const score = scratchDir.copy(spots[i].vec).applyQuaternion(s.q).dot(front);
+            if (score > bestScore) {
+              best = i;
+              bestScore = score;
+            }
+          }
+          if (best !== s.centre) {
+            s.centre = best;
+            onCentre.current(best);
+          }
+          s.aim = 'nearest';
+          s.aimIndex = best;
+          // the flick has died down: the nearest badge settles onto the front spot
+          if (s.mode === 'coast' && (s.coastT >= COAST_MAX_S || s.w.length() < COAST_SETTLE_W)) s.mode = 'spring';
+        }
+        let settled = false;
+        if (s.mode === 'spring') {
+          const i = s.aimIndex >= 0 && s.aimIndex < spots.length ? s.aimIndex : p.selected;
+          if (s.aim === 'upright') turnBetween(s.q, upright(i, scratchGoal), scratchError);
+          else arcBetween(scratchDir.copy(spots[i].vec).applyQuaternion(s.q), front, scratchError);
+          springTurn(scratchError, s.w, omega, dt, scratchTurn);
+          rotateBy(s.q, scratchTurn);
+          settled = !P.active && scratchError.length() < 0.02 && s.w.length() < 0.05;
+        }
         s.wobble += ((settled ? 1 : 0) - s.wobble) * (1 - Math.exp(-dt * (settled ? 0.8 : 6)));
         wobble = s.wobble * WOBBLE * (0.8 * Math.sin(s.t * 0.55) + 0.2 * Math.sin(s.t * 1.3 + 1));
       }
     } else {
       if (s.started) {
-        // badges taken off: spin on from the speed the spring had, then pick up pace
+        // badges taken off: from wherever the drag left it, spin on about the
+        // planet's axis and tip back upright
         s.started = false;
-        s.spin = s.yawV;
-        s.yawV = 0;
+        scratchEuler.setFromQuaternion(s.q, 'XYZ');
+        s.pitch = scratchEuler.x;
+        s.yaw = scratchEuler.y;
+        s.roll = scratchEuler.z;
+        s.pitchV = 0;
+        s.rollV = 0;
+        s.spin = s.w.dot(scratchDir.set(0, Math.cos(s.pitch), Math.sin(s.pitch)));
+        s.w.set(0, 0, 0);
+        s.centre = -1;
+        s.aimIndex = -1;
       }
       s.mode = 'spring';
       if (p.reduced) {
         s.pitch = FREE_PITCH;
         s.pitchV = 0;
+        s.roll = 0;
+        s.rollV = 0;
         s.wobble = 0;
       } else {
         s.spun = true;
         s.spin += ((p.excited ? SPIN_EXCITED : SPIN_CALM) - s.spin) * (1 - Math.exp(-dt * 2.2));
         s.yaw = (s.yaw + s.spin * dt) % TWO_PI;
         [s.pitch, s.pitchV] = spring(s.pitch, s.pitchV, FREE_PITCH, SETTLE_OMEGA / 2, dt);
+        [s.roll, s.rollV] = spring(s.roll, s.rollV, 0, SETTLE_OMEGA / 2, dt);
         // the idle rock about the last badge dies away instead of snapping off
         s.wobble *= Math.exp(-dt * 3);
         if (s.wobble > 1e-3) {
@@ -1582,16 +1727,16 @@ function Scene(p: SceneProps) {
           wobble = s.wobble * WOBBLE * (0.8 * Math.sin(s.t * 0.55) + 0.2 * Math.sin(s.t * 1.3 + 1));
         }
       }
+      s.q.setFromEuler(scratchEuler.set(s.pitch, s.yaw, s.roll, 'XYZ'));
     }
     // free planets float gently; one showing its badges holds still
     s.bobAmp = p.reduced ? 0 : s.bobAmp + ((badgeMode ? 0 : 1) - s.bobAmp) * (1 - Math.exp(-dt * 3));
     bob.position.y = Math.sin(s.t * 1.15) * BOB * s.bobAmp;
-    scratchQuat.setFromEuler(scratchEuler.set(s.pitch, s.yaw, 0, 'XYZ'));
     if (target && wobble !== 0) {
-      // twist about the axis through the selected badge: the planet rocks, the badge stays put
-      orient.quaternion.multiplyQuaternions(scratchWobble.setFromAxisAngle(target, wobble), scratchQuat);
+      // twist about the axis through the front spot: the planet rocks, the badge stays put
+      orient.quaternion.multiplyQuaternions(scratchWobble.setFromAxisAngle(target, wobble), s.q);
     } else {
-      orient.quaternion.copy(scratchQuat);
+      orient.quaternion.copy(s.q);
     }
 
     // ---- camera push-in along the ray through the pocket (it stays on FRONT_SPOT)
@@ -1610,6 +1755,28 @@ function Scene(p: SceneProps) {
       camera.far = f.distance + 2.2;
       camera.updateProjectionMatrix();
       s.pushed = false;
+    }
+
+    // ---- where the selected badge is on screen, for the page's speech bubble
+    if (badgeMode) {
+      const spot = spots[p.selected];
+      orient.updateWorldMatrix(true, false);
+      camera.updateMatrixWorld();
+      scratchPoint.copy(spot.vec).multiplyScalar(BADGE_R + BADGE_LIFT);
+      orient.localToWorld(scratchPoint);
+      const normal = scratchDir.copy(spot.vec).transformDirection(orient.matrixWorld);
+      const visible = normal.dot(scratchError.copy(camera.position).sub(scratchPoint).normalize()) > 0.2;
+      scratchPoint.project(camera);
+      const box = Math.max(1, f.frac * state.size.width);
+      const x = 0.5 + (scratchPoint.x * state.size.width) / (2 * box);
+      const y = 0.5 - (scratchPoint.y * state.size.height) / (2 * box);
+      const last = s.point;
+      if (visible !== last.visible || Math.abs(x - last.x) > 4e-4 || Math.abs(y - last.y) > 4e-4) {
+        last.x = x;
+        last.y = y;
+        last.visible = visible;
+        onBadgePoint.current(x, y, visible);
+      }
     }
   }, -1);
 
@@ -1695,6 +1862,8 @@ function GlobeInner({
   pocketOpen = false,
   onPocketOpened,
   onPocketClosed,
+  onCentreBadge,
+  onBadgePoint,
   detail = 'pod',
   excited = false,
   bleed = 0.3,
@@ -1716,7 +1885,11 @@ function GlobeInner({
   const [pocketShown, setPocketShown] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const hitRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<DragState>({ active: false, offset: 0, velocity: 0 });
+  const dragRef = useRef<DragState>({ active: false, dx: 0, dy: 0, vx: 0, vy: 0 });
+  // Bumped to build a fresh canvas after a lost context that did not come back.
+  const [generation, setGeneration] = useState(0);
+  const rebuilds = useRef<number[]>([]);
+  const restoreTimer = useRef<number | undefined>(undefined);
   const hoverRef = useRef(-1);
   const alive = useRef(true);
   const answered = useRef(false); // last pocket state reported to the page
@@ -1742,6 +1915,10 @@ function GlobeInner({
   const selectRef = useLatest(onSelectBadge);
   const openedRef = useLatest(onPocketOpened);
   const closedRef = useLatest(onPocketClosed);
+  const centreRef = useLatest(onCentreBadge);
+  const pointRef = useLatest(onBadgePoint);
+  const reportCentre = useCallback((index: number) => centreRef.current?.(index), [centreRef]);
+  const reportPoint = useCallback((x: number, y: number, on: boolean) => pointRef.current?.(x, y, on), [pointRef]);
   const count = list.length;
   const sel = count > 0 && !leaving ? Math.min(count - 1, Math.max(0, Math.round(selected ?? 0))) : -1;
   const pocketActive = pocketOpen || pocketShown;
@@ -1751,24 +1928,31 @@ function GlobeInner({
     alive.current = true;
     return () => {
       alive.current = false;
+      window.clearTimeout(restoreTimer.current);
     };
   }, []);
 
+  // A painting can fail when a phone runs short of canvas memory: try again a bit later.
+  const [paintTry, setPaintTry] = useState(0);
   useEffect(() => {
     if (!webgl || surface) return;
     let cancelled = false;
+    let retry: number | undefined;
     requestSurface(kind, mapPx, 1).then(
       (textures) => {
         if (!cancelled) setLoaded(textures);
       },
       () => {
-        if (!cancelled) setFailed(true);
+        if (cancelled) return;
+        if (paintTry < 2) retry = window.setTimeout(() => setPaintTry((n) => n + 1), 1500 * (paintTry + 1));
+        else setFailed(true);
       },
     );
     return () => {
       cancelled = true;
+      window.clearTimeout(retry);
     };
-  }, [webgl, surface, kind, mapPx]);
+  }, [webgl, surface, kind, mapPx, paintTry]);
 
   // Badge stickers: painted once per icon/colour/style/logo/size and shared.
   const badgePx = BADGE_PX[detail];
@@ -1807,11 +1991,27 @@ function GlobeInner({
     return () => io.disconnect();
   }, []);
 
-  const fail = useCallback(() => {
+  // Build a fresh canvas, unless that has already happened too often this minute
+  // (then the flat planet stands in for good).
+  const rebuild = useCallback(() => {
     if (!alive.current) return;
-    setFailed(true);
-    setReady(false);
+    window.clearTimeout(restoreTimer.current);
+    const now = Date.now();
+    rebuilds.current = rebuilds.current.filter((t) => now - t < 60_000);
+    if (rebuilds.current.length >= MAX_REBUILDS) {
+      setFailed(true);
+      setReady(false);
+      return;
+    }
+    rebuilds.current.push(now);
+    setGeneration((g) => g + 1);
   }, []);
+  // The context went away: three asks for it back; rebuild if it doesn't come soon.
+  const onContextLost = useCallback(() => {
+    window.clearTimeout(restoreTimer.current);
+    restoreTimer.current = window.setTimeout(rebuild, RESTORE_WAIT_MS);
+  }, [rebuild]);
+  const onContextRestored = useCallback(() => window.clearTimeout(restoreTimer.current), []);
   const onCompiled = useCallback(() => {
     if (alive.current) setCompiled(true);
   }, []);
@@ -1870,24 +2070,27 @@ function GlobeInner({
 
   const interactive = live && ready && count > 0 && !leaving && !pocketActive;
 
-  // Drag to spin, with inertia; the scene eases back to the selected badge 2.5 s after release.
+  // Drag to turn the planet any way you like, with inertia; when it comes to rest the
+  // badge nearest the front settles onto FRONT_SPOT and becomes the selected one.
   useEffect(() => {
     const el = hitRef.current;
     if (!el || !interactive || reduced) return;
     const drag = dragRef.current;
-    let pointer: { id: number; x: number; lastX: number; lastT: number } | null = null;
+    let pointer: { id: number; x: number; y: number; lastX: number; lastY: number; lastT: number } | null = null;
 
     const down = (e: PointerEvent) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
-      pointer = { id: e.pointerId, x: e.clientX, lastX: e.clientX, lastT: e.timeStamp };
+      pointer = { id: e.pointerId, x: e.clientX, y: e.clientY, lastX: e.clientX, lastY: e.clientY, lastT: e.timeStamp };
     };
     const move = (e: PointerEvent) => {
       if (!pointer || e.pointerId !== pointer.id) return;
-      const dx = e.clientX - pointer.x;
       if (!drag.active) {
-        if (Math.abs(dx) < CLICK_SLOP_PX) return;
+        if (Math.hypot(e.clientX - pointer.x, e.clientY - pointer.y) < CLICK_SLOP_PX) return;
         drag.active = true;
-        drag.velocity = 0;
+        drag.dx = 0;
+        drag.dy = 0;
+        drag.vx = 0;
+        drag.vy = 0;
         try {
           el.setPointerCapture(e.pointerId);
         } catch {
@@ -1895,19 +2098,33 @@ function GlobeInner({
         }
         applyCursor();
       }
-      // the surface under the pointer roughly follows it: 1 radius of travel = 1 radian
-      const perPx = 1.8 / Math.max(1, el.getBoundingClientRect().width);
-      drag.offset = dx * perPx;
+      const perPx = DRAG_PER_PX / Math.max(1, el.getBoundingClientRect().width);
+      const mx = (e.clientX - pointer.lastX) * perPx;
+      const my = (e.clientY - pointer.lastY) * perPx;
+      drag.dx += mx;
+      drag.dy += my;
       const dt = (e.timeStamp - pointer.lastT) / 1000;
-      if (dt > 0.001) drag.velocity = drag.velocity * 0.5 + (((e.clientX - pointer.lastX) * perPx) / dt) * 0.5;
+      if (dt > 0.001) {
+        drag.vx = drag.vx * 0.5 + (mx / dt) * 0.5;
+        drag.vy = drag.vy * 0.5 + (my / dt) * 0.5;
+      }
       pointer.lastX = e.clientX;
+      pointer.lastY = e.clientY;
       pointer.lastT = e.timeStamp;
     };
     const up = (e: PointerEvent) => {
       if (!pointer || e.pointerId !== pointer.id) return;
       if (drag.active) {
-        if (e.timeStamp - pointer.lastT > 100) drag.velocity = 0; // held still before letting go
-        drag.velocity = Math.max(-6, Math.min(6, drag.velocity));
+        if (e.timeStamp - pointer.lastT > 100) {
+          // held still before letting go: no flick
+          drag.vx = 0;
+          drag.vy = 0;
+        }
+        const speed = Math.hypot(drag.vx, drag.vy);
+        if (speed > 6) {
+          drag.vx *= 6 / speed;
+          drag.vy *= 6 / speed;
+        }
         drag.active = false;
         applyCursor();
       }
@@ -1971,7 +2188,7 @@ function GlobeInner({
       ) : null}
       {live && surface ? (
         <div className="globe3d-stage">
-          <Boundary onError={fail}>
+          <Boundary key={generation} onError={rebuild}>
             <Canvas
               frameloop={loop}
               dpr={dpr}
@@ -2000,7 +2217,10 @@ function GlobeInner({
                 onHover={onHover}
                 onCompiled={onCompiled}
                 onReady={onReady}
-                onLost={fail}
+                onLost={onContextLost}
+                onRestored={onContextRestored}
+                onCentre={reportCentre}
+                onBadgePoint={reportPoint}
                 onPocketOpened={reportOpened}
                 onPocketClosed={reportClosed}
               />

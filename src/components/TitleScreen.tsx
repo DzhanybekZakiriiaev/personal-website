@@ -11,11 +11,11 @@ import { motion, usePresence, useReducedMotion } from 'motion/react';
 import { profile } from '../content';
 import { pilotHold, pilotTakeOver } from '../lib/pilot';
 import { playUiSound } from '../lib/uiSounds';
-import { viewUrl } from '../lib/viewMode';
 import { EXIT_TIME, RocketIntro, type RocketFrame } from '../three/RocketIntro';
 import { prefersReducedMotionNow } from '../three/StitchDoll';
 import { TextStickerLink } from './Sticker';
 import { SoundStitch } from './SoundStitch';
+import { ViewToggle } from './ViewToggle';
 import './title.css';
 
 export interface TitleScreenProps {
@@ -295,10 +295,8 @@ export function TitleScreen({ onStart, returning = false }: TitleScreenProps) {
               ))}
             </ul>
           ) : null}
-          {/* Everything on one plain page, no 3D (lib/viewMode.ts). */}
-          <a className="title-simple" href={viewUrl('simple')}>
-            Prefer a plain page? <strong>Simple version</strong>
-          </a>
+          {/* Gamified (this) or the simple version: everything on plain pages, no 3D (lib/viewMode.ts). */}
+          <ViewToggle current="3d" className="title-view" />
         </div>
       </div>
     </motion.section>

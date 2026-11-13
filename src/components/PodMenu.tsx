@@ -4,6 +4,7 @@ import { ButtonHints } from './ButtonHints';
 import { TextStickerLink } from './Sticker';
 import { PlanetCarousel } from './PlanetCarousel';
 import { SoundStitch } from './SoundStitch';
+import { ViewToggle } from './ViewToggle';
 import './stitch-controls.css';
 
 interface PodMenuProps {
@@ -55,6 +56,7 @@ export function PodMenu({ selected, onSelect, restoreFocus, active = true, focus
           </button>
         ) : null}
         <SoundStitch />
+        <ViewToggle current="3d" className="pod-view" />
       </div>
 
       <header className="pod-header" inert={focused}>

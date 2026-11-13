@@ -66,25 +66,64 @@ const INTERACTIVE = [
 
 /*
  * Speech-bubble arrow, in units of the globe box (0..100, the box is square).
- * The selected badge's centre is FRONT_SPOT (50, 34); the tip stops BADGE_GAP short
- * of it on the upper-right diagonal, at the badge's edge. The bubble itself sits
- * above the sphere's top-right (bottom edge at y = 4, see levels.css), clear of
- * the neighbouring badges, and the shaft hooks down from it into the badge.
+ * The bubble sits above the sphere's top-right (bottom edge at y = 4, see
+ * levels.css); the arrow leaves it at ARROW_START and hooks down into the selected
+ * badge, stopping BADGE_GAP short of its centre. The globe reports where that badge
+ * is every frame (it moves while you turn the planet), so the arrow always points
+ * right at it; at rest the badge sits on FRONT_SPOT.
  */
 const BADGE_GAP = 10;
-const SPOT = { x: FRONT_SPOT.x * 100, y: FRONT_SPOT.y * 100 };
-const U = Math.SQRT1_2; // unit vector from the badge centre toward the bubble: (U, -U)
-const TIP = { x: SPOT.x + BADGE_GAP * U, y: SPOT.y - BADGE_GAP * U };
+const ARROW_START = { x: 70, y: 2.5 };
+// The shaft comes in from this point's direction (45 degrees from upper right at FRONT_SPOT).
+const ARROW_FROM = { x: 67.5, y: 16.5 };
 
-function at(along: number, across = 0): string {
-  // A point `along` units back up the arrow from the tip, `across` units to its side.
-  const x = TIP.x + along * U + across * U;
-  const y = TIP.y - along * U + across * U;
-  return `${x.toFixed(2)},${y.toFixed(2)}`;
+function arrowPaths(bx: number, by: number): { shaft: string; head: string } {
+  const cx = bx * 100;
+  const cy = by * 100;
+  let ux = ARROW_FROM.x - cx;
+  let uy = ARROW_FROM.y - cy;
+  const len = Math.hypot(ux, uy) || 1;
+  ux /= len;
+  uy /= len;
+  const tx = cx + BADGE_GAP * ux;
+  const ty = cy + BADGE_GAP * uy;
+  // a point `along` units back up the arrow from the tip, `across` units to its side
+  const at = (along: number, across = 0) =>
+    `${(tx + along * ux - across * uy).toFixed(2)} ${(ty + along * uy + across * ux).toFixed(2)}`;
+  return {
+    shaft: `M${ARROW_START.x} ${ARROW_START.y} C73 10 ${at(10.4)} ${at(2.4)}`,
+    head: `${at(0)} ${at(3.2, 2)} ${at(3.2, -2)}`,
+  };
 }
 
-const ARROW_HEAD = `${at(0)} ${at(3.2, 2)} ${at(3.2, -2)}`;
-const ARROW_SHAFT = `M70 2.5 C73 10 ${at(10.4)} ${at(2.4)}`.replace(/,/g, ' ');
+const RESTING_ARROW = arrowPaths(FRONT_SPOT.x, FRONT_SPOT.y);
+
+/** Where the selected badge is on the planet box (fractions), as the globe last reported it. */
+interface BadgePoint {
+  x: number;
+  y: number;
+  visible: boolean;
+}
+
+function createPointStore() {
+  let value: BadgePoint = { x: FRONT_SPOT.x, y: FRONT_SPOT.y, visible: true };
+  const listeners = new Set<(point: BadgePoint) => void>();
+  return {
+    get: () => value,
+    set(x: number, y: number, visible: boolean) {
+      value = { x, y, visible };
+      listeners.forEach((listener) => listener(value));
+    },
+    subscribe(listener: (point: BadgePoint) => void) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+}
+
+type PointStore = ReturnType<typeof createPointStore>;
 
 // Cut-paper tag with irregular clipped corners, in a 0..100 box stretched to the button.
 const TAG_POINTS = '5,0 93,2 100,24 100,82 95,100 7,97 0,76 0,20';
@@ -215,22 +254,39 @@ function SideTabArt() {
   );
 }
 
-// Cyan speech bubble above the globe's top-right, its arrow tip at the selected badge's edge.
-function LevelBubble({ item, hidden, reduce }: { item: LevelItem; hidden: boolean; reduce: boolean }) {
+// Cyan speech bubble above the globe's top-right, its arrow tip at the selected
+// badge's edge wherever the badge is (the arrow follows it while the planet turns).
+function LevelBubble({ item, hidden, reduce, points }: { item: LevelItem; hidden: boolean; reduce: boolean; points: PointStore }) {
+  const arrowRef = useRef<SVGSVGElement>(null);
+  useLayoutEffect(() => {
+    const svg = arrowRef.current;
+    if (!svg) return undefined;
+    const shafts = svg.querySelectorAll('path');
+    const heads = svg.querySelectorAll('polygon');
+    const draw = ({ x, y, visible }: BadgePoint) => {
+      const { shaft, head } = arrowPaths(x, y);
+      shafts.forEach((el) => el.setAttribute('d', shaft));
+      heads.forEach((el) => el.setAttribute('points', head));
+      svg.style.opacity = visible ? '' : '0';
+    };
+    draw(points.get());
+    return points.subscribe(draw);
+  }, [points]);
+
   return (
     <motion.div
       className="levels-bubble-layer"
       aria-hidden="true"
-      style={{ transformOrigin: `${TIP.x}% ${TIP.y}%` }}
+      style={{ transformOrigin: `${ARROW_START.x}% ${ARROW_START.y}%` }}
       initial={reduce ? false : { opacity: 0, scale: 0.55 }}
       animate={hidden ? { opacity: 0, scale: 0.85 } : { opacity: 1, scale: 1 }}
       transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 24, delay: hidden ? 0 : 0.1 }}
     >
-      <svg className="levels-bubble-arrow" viewBox="0 0 100 100" focusable="false">
-        <path className="levels-arrow-edge" d={ARROW_SHAFT} vectorEffect="non-scaling-stroke" />
-        <polygon className="levels-arrow-edge" points={ARROW_HEAD} vectorEffect="non-scaling-stroke" />
-        <path className="levels-arrow-fill" d={ARROW_SHAFT} vectorEffect="non-scaling-stroke" />
-        <polygon className="levels-arrow-fill" points={ARROW_HEAD} vectorEffect="non-scaling-stroke" />
+      <svg ref={arrowRef} className="levels-bubble-arrow" viewBox="0 0 100 100" focusable="false">
+        <path className="levels-arrow-edge" d={RESTING_ARROW.shaft} vectorEffect="non-scaling-stroke" />
+        <polygon className="levels-arrow-edge" points={RESTING_ARROW.head} vectorEffect="non-scaling-stroke" />
+        <path className="levels-arrow-fill" d={RESTING_ARROW.shaft} vectorEffect="non-scaling-stroke" />
+        <polygon className="levels-arrow-fill" points={RESTING_ARROW.head} vectorEffect="non-scaling-stroke" />
       </svg>
       <div className="levels-bubble">
         <p className="levels-bubble-title">{item.title}</p>
@@ -332,6 +388,8 @@ export function PlanetLevels({ planet, items, label, hideBubble = false, interac
   const openRef = useRef<HTMLButtonElement>(null);
   const visitRef = useRef<HTMLButtonElement>(null);
   const pendingFocus = useRef<'soon' | 'visit' | null>(null);
+  // Where the selected badge is on the planet, reported by the globe every frame.
+  const points = useMemo(createPointStore, []);
   const baseId = `levels-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   const count = items.length;
@@ -444,10 +502,13 @@ export function PlanetLevels({ planet, items, label, hideBubble = false, interac
       onSelectBadge: clickBadge,
       pocketOpen: phase !== 'idle',
       onPocketOpened,
+      // turning the planet by hand selects the badge that ends up nearest the front
+      onCentre: select,
+      onBadgePoint: points.set,
     };
     published.current = mine;
     setFocusGlobe(mine);
-  }, [badges, index, clickBadge, phase, onPocketOpened]);
+  }, [badges, index, clickBadge, phase, onPocketOpened, select, points]);
   useLayoutEffect(
     () => () => {
       if (getFocusGlobe() === published.current) setFocusGlobe(null);
@@ -601,7 +662,7 @@ export function PlanetLevels({ planet, items, label, hideBubble = false, interac
           {/* The planet itself is drawn by the pod scene underneath, exactly on this box.
               Pointer users can pick badges on it; the tabs below carry the names. */}
           <div ref={setGlobeBox} className="levels-globe-box" data-planet={planet}>
-            <LevelBubble key={item.id} item={item} hidden={busy || hideBubble} reduce={reduce} />
+            <LevelBubble key={item.id} item={item} hidden={busy || hideBubble} reduce={reduce} points={points} />
           </div>
 
           <div ref={tablistRef} role="tablist" aria-label={`${label} levels`} className="levels-tabs">

@@ -26,7 +26,8 @@ The site is live at [dzhanybek.xyz](https://dzhanybek.xyz), on Vercel: framework
 
 [`src/lib/viewMode.ts`](src/lib/viewMode.ts) picks one before any 3D code downloads:
 
-- **Simple version** ([`src/simple/SimpleSite.tsx`](src/simple/SimpleSite.tsx)): all the same content on plain cards, no 3D, about a fifth of the download. Shown when the browser has no WebGL or only software graphics, when data saver is on, or on very low-memory devices. Link to it directly with `?view=simple` (for example on a CV: `https://dzhanybek.xyz/?view=simple`).
+- **Simple version** ([`src/simple/SimpleSite.tsx`](src/simple/SimpleSite.tsx)): all the same content with no 3D and about a fifth of the download, in the same handmade style: a cardboard sign, a paper cut-out rocket animated frame by frame, a woven ribbon of section tabs (one section at a time, same addresses as the 3D site) and felt, burlap and paper cards. Shown when the browser has no WebGL or only software graphics, when data saver is on, or on very low-memory devices. Link to it directly with `?view=simple` (for example on a CV: `https://dzhanybek.xyz/?view=simple`).
+- **Gamified | Simple switch:** on the start screen, the planets screen and the simple version's header.
 - **Loading screen:** after 2.5 s on screen it offers the simple version, and after 9 s it switches to it by itself.
 - **3D site:** the default; `?view=3d` forces it (no automatic switch).
 
@@ -61,7 +62,7 @@ All text lives in [`src/content.ts`](src/content.ts): profile, sections, project
 | Enter | Open it |
 | Esc | Back to the planets |
 
-Mouse and touch work too. **Back to start** (top left of the planets screen) flies the rocket back to the start screen. Every section has its own link (`#/projects`, `#/experience`, `#/about`, `#/contact`).
+Mouse and touch work too. On a section's planet, drag to turn it any way you like: the badge nearest the front becomes the selected one, and the speech bubble's arrow follows it. **Back to start** (top left of the planets screen) flies the rocket back to the start screen. Every section has its own link (`#/projects`, `#/experience`, `#/about`, `#/contact`).
 
 ## Accessibility
 

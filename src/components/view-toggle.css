@@ -1,0 +1,105 @@
+/* "Gamified | Simple" (ViewToggle.tsx): a felt track with a pink felt knob on the
+   current side and a running stitch round it. */
+.view-toggle {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+  padding: 4px;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1;
+  background-color: #fff3d4;
+  background-image: radial-gradient(rgb(120 80 30 / 0.08) 1px, transparent 1px);
+  background-size: 5px 5px;
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 3px #e3c995,
+    0 4px 0 3px rgb(0 0 0 / 0.28);
+}
+
+.view-toggle::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 1.5px dashed rgb(138 90 43 / 0.5);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.view-toggle-side {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  min-height: 34px;
+  padding: 0 0.85em;
+  color: #6e4b2c;
+  text-decoration: none;
+  white-space: nowrap;
+  border-radius: 999px;
+}
+
+a.view-toggle-side:hover {
+  color: #4a2a12;
+  background: rgb(200 20 106 / 0.1);
+}
+
+a.view-toggle-side:focus-visible {
+  outline: 3px solid #4a2a12;
+  outline-offset: -1px;
+}
+
+/* the knob: pink felt with its own stitch */
+.view-toggle-side.is-current {
+  color: #fff;
+  background-color: var(--pink);
+  background-image: radial-gradient(rgb(255 255 255 / 0.12) 1px, transparent 1px);
+  background-size: 4px 4px;
+  box-shadow:
+    inset 0 -3px 0 rgb(0 0 0 / 0.22),
+    0 2px 3px rgb(60 10 30 / 0.35);
+}
+
+.view-toggle-side.is-current::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1.5px dashed rgb(255 255 255 / 0.6);
+  border-radius: 999px;
+}
+
+.view-toggle-icon {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.view-toggle-icon path[fill='none'] {
+  fill: none;
+}
+
+/* on the page icon the lines are cut out of the sheet */
+.view-toggle-side .view-toggle-icon path + path {
+  stroke: #fff3d4;
+}
+
+.view-toggle-side.is-current .view-toggle-icon path + path {
+  stroke: var(--pink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a.view-toggle-side {
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+}

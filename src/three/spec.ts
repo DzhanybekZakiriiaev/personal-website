@@ -39,6 +39,13 @@ export interface Globe3DProps {
   onPocketOpened?: () => void;
   /** Fires once the pocket has zipped fully closed again. */
   onPocketClosed?: () => void;
+  /** A drag turned another badge nearest the front (it settles there when the planet comes to rest). */
+  onCentreBadge?: (index: number) => void;
+  /**
+   * Every frame the selected badge moves on screen: its centre as fractions of the
+   * sphere's box (0..1, may stray a little outside), and whether it faces the viewer.
+   */
+  onBadgePoint?: (x: number, y: number, visible: boolean) => void;
   /** 'pod' = small hanging planet (1024 px maps), 'hero' = big section planet (2048 px maps). */
   detail?: 'pod' | 'hero';
   /** Spin a little faster, e.g. the highlighted planet on the pod. */

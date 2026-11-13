@@ -63,6 +63,10 @@ export interface FocusGlobe {
   pocketOpen: boolean;
   onPocketOpened?: () => void;
   onPocketClosed?: () => void;
+  /** A drag on the planet brought this badge nearest the front. */
+  onCentre?: (index: number) => void;
+  /** The selected badge's centre on screen, as fractions of the planet box. */
+  onBadgePoint?: (x: number, y: number, visible: boolean) => void;
 }
 
 const globe = createSlot<FocusGlobe | null>(null);
