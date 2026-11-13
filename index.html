@@ -24,8 +24,8 @@
            Same markup as <LoadingScreen progress={0} />; React replaces it on its first
            render, and LoadingScreen continues its animations from the same phase. -->
       <div id="boot-backdrop" class="backdrop" aria-hidden="true" style="visibility: hidden"></div>
-      <div id="boot-splash" class="loading" role="progressbar" aria-label="Loading the planets" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="visibility: hidden">
-        <div class="loading-stage" aria-hidden="true">
+      <div id="boot-splash" class="loading" style="visibility: hidden">
+        <div class="loading-stage" role="progressbar" aria-label="Loading the planets" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
           <span class="loading-yarn"></span>
           <div class="loading-planet">
             <svg viewBox="0 0 240 240" class="loading-art">
@@ -61,9 +61,11 @@
         </div>
         <div class="loading-tag">
           <p class="loading-title">Stitching your planets</p>
-          <p class="loading-line" aria-hidden="true"><span class="boot-line-motion">Knitting the oceans…</span><span class="boot-line-still">Almost there…</span></p>
+          <p class="loading-line" aria-hidden="true"><span class="boot-line-motion">Knitting the oceans…</span> <span class="boot-line-still">Almost there…</span></p>
           <p class="loading-pct" aria-hidden="true">0%</p>
         </div>
+        <!-- Shown after 2.5 s by CSS (loading.css), even before the JavaScript arrives. -->
+        <a class="loading-skip boot-skip" href="?view=simple">Taking a while? <strong>Show the simple version</strong></a>
       </div>
     </div>
     <script>

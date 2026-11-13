@@ -220,6 +220,47 @@
   display: none;
 }
 
+/* "Taking a while? Show the simple version" (LoadingScreen.tsx; the boot splash's
+   copy appears by itself after 2.5 s) */
+.loading-skip {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 9px 18px;
+  font: 600 1rem/1.3 var(--font-body);
+  color: var(--ink);
+  text-decoration: none;
+  background: #fff3d4;
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 3px #e3c995,
+    0 4px 0 3px rgb(0 0 0 / 0.3);
+}
+
+.loading-skip strong {
+  font-family: var(--font-display);
+  color: var(--pink-dark);
+}
+
+.loading-skip:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 5px;
+}
+
+.boot-skip {
+  animation: loading-skip-in 0.35s ease-out 2.5s both;
+}
+
+@keyframes loading-skip-in {
+  from {
+    opacity: 0;
+    visibility: hidden;
+  }
+  to {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .boot-line-motion {
     display: none;

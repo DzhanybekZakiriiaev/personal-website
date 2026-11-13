@@ -1,6 +1,38 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion, useIsPresent, useReducedMotion } from 'motion/react';
+import { decideViewMode, switchToSimple, viewUrl } from '../lib/viewMode';
 import './loading.css';
+
+/** "Show the simple version" appears after this much time with the page on screen. */
+const OFFER_SIMPLE_MS = 2500;
+/** Still loading after this much on-screen time: switch to the simple version by itself. */
+const AUTO_SIMPLE_MS = 9000;
+
+/**
+ * Offers the simple version once loading takes a while, and switches to it if it
+ * takes much longer (not when the visitor asked for the 3D site with ?view=3d).
+ * Only time with the page visible counts: a background tab is slow on purpose.
+ */
+function useSimpleFallback(active: boolean): boolean {
+  const [offer, setOffer] = useState(false);
+  useEffect(() => {
+    if (!active) return undefined;
+    const forced3d = decideViewMode().forced3d;
+    let shown = document.hidden ? 0 : performance.now(); // since the page opened
+    let last = performance.now();
+    const tick = () => {
+      const now = performance.now();
+      if (!document.hidden) shown += now - last;
+      last = now;
+      if (shown >= OFFER_SIMPLE_MS) setOffer(true);
+      if (shown >= AUTO_SIMPLE_MS && !forced3d) switchToSimple('slow');
+    };
+    tick();
+    const id = window.setInterval(tick, 250);
+    return () => window.clearInterval(id);
+  }, [active]);
+  return offer;
+}
 
 const LINES = [
   'Knitting the oceans…',
@@ -83,6 +115,7 @@ export function LoadingScreen({ progress }: { progress: number }) {
   const smooth = useSmoothProgress(isPresent ? target : 1, Boolean(reduceMotion) || !isPresent);
   const pct = Math.round(smooth * 100);
   const angle = smooth * 360 - 90; // start at the top
+  const offerSimple = useSimpleFallback(isPresent);
 
   // Take over from the boot splash (React has already replaced #root's content) and
   // continue its CSS animations from the same phase.
@@ -120,16 +153,20 @@ export function LoadingScreen({ progress }: { progress: number }) {
     <motion.div
       ref={rootRef}
       className="loading"
-      role="progressbar"
-      aria-label="Loading the planets"
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={Math.round(target * 100)}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.08 }}
       transition={{ duration: 0.55, ease: 'easeInOut' }}
     >
-      <div className="loading-stage" aria-hidden="true">
+      {/* The progress bar is the planet alone: a progressbar's content is hidden from
+          screen readers, and the simple-version link below must stay reachable. */}
+      <div
+        className="loading-stage"
+        role="progressbar"
+        aria-label="Loading the planets"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(target * 100)}
+      >
         <span className="loading-yarn" />
         <div className="loading-planet">
           <svg viewBox="0 0 240 240" className="loading-art">
@@ -182,6 +219,12 @@ export function LoadingScreen({ progress }: { progress: number }) {
           {pct}%
         </p>
       </div>
+
+      {offerSimple ? (
+        <a className="loading-skip" href={viewUrl('simple')}>
+          Taking a while? <strong>Show the simple version</strong>
+        </a>
+      ) : null}
     </motion.div>
   );
 }

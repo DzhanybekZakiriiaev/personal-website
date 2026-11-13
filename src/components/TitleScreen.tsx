@@ -11,6 +11,7 @@ import { motion, usePresence, useReducedMotion } from 'motion/react';
 import { profile } from '../content';
 import { pilotHold, pilotTakeOver } from '../lib/pilot';
 import { playUiSound } from '../lib/uiSounds';
+import { viewUrl } from '../lib/viewMode';
 import { EXIT_TIME, RocketIntro, type RocketFrame } from '../three/RocketIntro';
 import { prefersReducedMotionNow } from '../three/StitchDoll';
 import { TextStickerLink } from './Sticker';
@@ -294,6 +295,10 @@ export function TitleScreen({ onStart, returning = false }: TitleScreenProps) {
               ))}
             </ul>
           ) : null}
+          {/* Everything on one plain page, no 3D (lib/viewMode.ts). */}
+          <a className="title-simple" href={viewUrl('simple')}>
+            Prefer a plain page? <strong>Simple version</strong>
+          </a>
         </div>
       </div>
     </motion.section>

@@ -1,30 +1,18 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App';
-import { adoptBootSplash } from './components/LoadingScreen';
-import { preloadEverything } from './lib/preload';
-import { initSound, startMusic } from './lib/sound';
-import { initUiSounds } from './lib/uiSounds';
 import './styles.css';
 import './text-texture.css';
+// In the first, render-blocking stylesheet: the boot splash in index.html needs it to
+// show (and offer the simple version) before any JavaScript has arrived.
+import './components/loading.css';
+import { decideViewMode } from './lib/viewMode';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');
 
-// Start every download, worker paint and shader compile now, before React renders
-// the whole site; the loading screen subscribes to this same run for its progress.
-void preloadEverything();
-// The boot splash in index.html has been animating; the React loading screen continues it.
-adoptBootSplash();
-// Sound settings now; the theme music as soon as the loading screen's downloads are
-// done (or on the first tap or key press, where the browser blocks sound until then).
-initSound();
-void preloadEverything().then(startMusic);
-// Felt pops and plucks for every link and button.
-initUiSounds();
-
-createRoot(root).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+// 3D site or simple version (lib/viewMode.ts)? Each is its own download, so the
+// simple version never fetches three.js or the planet painting code.
+const view = decideViewMode();
+if (view.mode === 'simple') {
+  void import('./boot/simple').then((m) => m.bootSimple(root, view.reason));
+} else {
+  void import('./boot/full').then((m) => m.bootFull(root));
+}

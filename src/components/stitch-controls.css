@@ -200,6 +200,26 @@
   }
 }
 
+/* The start screen's "Simple version" link: small, under the sound stitch. */
+.title-simple {
+  order: 2;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  text-underline-offset: 3px;
+}
+
+.title-simple strong {
+  font-family: var(--font-display);
+  color: var(--focus);
+}
+
+.title-simple:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
 /* The start screen: the sound stitch is first in the DOM (tab order) but shows under the links. */
 .title-sound {
   order: 1;

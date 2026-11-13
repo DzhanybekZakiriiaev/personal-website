@@ -22,6 +22,14 @@ Build for production with `npm run build`; the output goes to `dist/`.
 
 The site is live at [dzhanybek.xyz](https://dzhanybek.xyz), on Vercel: framework preset **Vite**, build command `npm run build`, output directory `dist`, no environment variables. Every push to `main` redeploys. [`vercel.json`](vercel.json) lets browsers keep the hashed files in `assets/` for a year. `public/_headers` does the same on Netlify or Cloudflare Pages.
 
+## 3D site and simple version
+
+[`src/lib/viewMode.ts`](src/lib/viewMode.ts) picks one before any 3D code downloads:
+
+- **Simple version** ([`src/simple/SimpleSite.tsx`](src/simple/SimpleSite.tsx)): all the same content on plain cards, no 3D, about a fifth of the download. Shown when the browser has no WebGL or only software graphics, when data saver is on, or on very low-memory devices. Link to it directly with `?view=simple` (for example on a CV: `https://dzhanybek.xyz/?view=simple`).
+- **Loading screen:** after 2.5 s on screen it offers the simple version, and after 9 s it switches to it by itself.
+- **3D site:** the default; `?view=3d` forces it (no automatic switch).
+
 ## Edit the content
 
 All text lives in [`src/content.ts`](src/content.ts): profile, sections, projects, experience, courses and skills.

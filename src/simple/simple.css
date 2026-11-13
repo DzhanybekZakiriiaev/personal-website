@@ -1,0 +1,265 @@
+/* =========================================================
+   The simple version (SimpleSite.tsx): denim, a cardboard name
+   sign and paper cards. Plain document flow, no animation, no
+   canvas: fast on any machine and easy to read and print.
+   ========================================================= */
+.simple {
+  min-height: 100vh;
+  padding: 0 16px 48px;
+  color: var(--ink);
+  background-color: #2c4a6e;
+  background-image: var(--tex-denim);
+  background-size: 420px;
+}
+
+.simple a {
+  color: var(--pink-dark);
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+.simple a:focus-visible,
+.simple summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.simple-skip {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 10;
+  padding: 10px 16px;
+  background: var(--paper);
+  border-radius: 999px;
+}
+
+.simple-skip:focus {
+  top: 12px;
+}
+
+.simple-header,
+.simple main,
+.simple-footer {
+  max-width: 54rem;
+  margin: 0 auto;
+}
+
+/* ---------- Header: cardboard sign, pitch, links, section nav ---------- */
+.simple-header {
+  padding-top: 32px;
+  text-align: center;
+}
+
+.simple-sign {
+  display: inline-block;
+  max-width: 100%;
+  padding: 18px 28px 20px;
+  color: #3b2410;
+  background-color: var(--cardboard);
+  background-image: var(--tex-cardboard);
+  background-size: 300px;
+  background-blend-mode: soft-light;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 3px rgb(255 255 255 / 0.12),
+    0 8px 0 rgb(40 25 10 / 0.35),
+    0 16px 26px rgb(0 0 0 / 0.3);
+  outline: 2px dashed rgb(90 55 20 / 0.45);
+  outline-offset: -12px;
+}
+
+.simple-sign h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 1.2rem + 2.4vw, 2.6rem);
+  line-height: 1.15;
+}
+
+.simple-role {
+  margin: 6px 0 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.simple-pitch {
+  max-width: 44rem;
+  margin: 24px auto 0;
+  padding: 16px 20px;
+  color: #eef2ff;
+  background: rgb(14 20 38 / 0.82);
+  border-radius: 16px;
+  outline: 2px dashed rgb(255 255 255 / 0.25);
+  outline-offset: -8px;
+  text-align: left;
+}
+
+.simple-links,
+.simple-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 14px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.simple-links a,
+.simple-nav a {
+  display: inline-block;
+  padding: 8px 18px;
+  font-family: var(--font-display);
+  text-decoration: none;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 0 4px 0 rgb(0 0 0 / 0.35);
+}
+
+.simple-nav a {
+  color: var(--ink);
+  background: #fff3d4;
+  border-color: #8a5a2b;
+}
+
+.simple-note {
+  margin: 18px auto 0;
+  max-width: 40rem;
+  color: #fff;
+}
+
+.simple-note a {
+  color: var(--focus);
+}
+
+/* ---------- Sections and cards ---------- */
+.simple main {
+  outline: none;
+}
+
+.simple section {
+  margin-top: 44px;
+  scroll-margin-top: 16px;
+}
+
+.simple h2 {
+  display: inline-block;
+  margin: 0 0 16px;
+  padding: 2px 22px 6px;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  color: #fff;
+  background: var(--pink);
+  border: 3px solid var(--pink-dark);
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 4px #fff,
+    0 6px 0 rgb(0 0 0 / 0.3);
+}
+
+.simple-card {
+  margin: 0 0 16px;
+  padding: 18px 22px 16px;
+  background-color: #f3e8cf;
+  background-image: var(--tex-burlap);
+  background-size: 280px;
+  background-blend-mode: soft-light;
+  border-radius: 16px;
+  box-shadow:
+    inset 0 0 0 2px rgb(255 255 255 / 0.35),
+    0 6px 0 rgb(60 40 15 / 0.3);
+  outline: 2px dashed rgb(110 78 36 / 0.4);
+  outline-offset: -8px;
+}
+
+.simple-card h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  line-height: 1.2;
+}
+
+.simple-card h4 {
+  margin: 12px 0 4px;
+  font-family: var(--font-display);
+}
+
+.simple-card p {
+  margin: 8px 0 0;
+}
+
+.simple-card ul {
+  margin: 8px 0 0;
+  padding-left: 1.2em;
+}
+
+.simple-card li + li {
+  margin-top: 4px;
+}
+
+.simple-meta {
+  font-weight: 700;
+  color: var(--pink-dark);
+}
+
+.simple-tags {
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
+.simple-card-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+.simple-grid {
+  display: grid;
+  gap: 0 16px;
+}
+
+@media (min-width: 760px) {
+  .simple-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.simple details {
+  margin-top: 10px;
+}
+
+.simple summary {
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.simple-skills {
+  list-style: none;
+  padding-left: 0 !important;
+}
+
+.simple-footer {
+  margin-top: 36px;
+  color: #fff;
+  text-align: center;
+}
+
+.simple-footer a {
+  color: var(--focus);
+}
+
+@media print {
+  .simple {
+    background: #fff;
+  }
+
+  .simple-nav,
+  .simple-note,
+  .simple-skip,
+  .simple-footer {
+    display: none;
+  }
+}
