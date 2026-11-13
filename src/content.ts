@@ -134,7 +134,7 @@ export const projects: Project[] = [
     icon: 'cube',
     color: '#f08a24',
     summary:
-      'A Three.js app that turns a comic page into a 3D world you can walk into and rewrite.',
+      'Huawei "Fetching Reality" challenge: a Three.js app that turns a comic page into a 3D world you can walk into and rewrite.',
     points: [
       "Implemented the SMAL-pets paper's 3D reconstruction in PyTorch3D and gsplat.",
       'PSNR 43.9 and SSIM 0.996 on 8 held-out synthetic views; runs at 60 FPS in Chrome.',
@@ -185,7 +185,7 @@ export const projects: Project[] = [
     devpostUrl: 'https://devpost.com/software/w-enxoy9',
     logo: hackcanadaLogo,
     title: 'StoryDrift',
-    badge: 'Top 3 of 700+ · HackCanada 2026',
+    badge: 'Top 10 of 700+ · HackCanada 2026',
     when: 'Now a startup backed by the SPUR Innovation Centre',
     icon: 'heart',
     color: '#d6336c',
