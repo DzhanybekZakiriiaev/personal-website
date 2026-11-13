@@ -18,6 +18,10 @@ npm run dev
 
 Build for production with `npm run build`; the output goes to `dist/`.
 
+## Deploy
+
+The site is live at [dzhanybek.xyz](https://dzhanybek.xyz), on Vercel: framework preset **Vite**, build command `npm run build`, output directory `dist`, no environment variables. Every push to `main` redeploys. [`vercel.json`](vercel.json) lets browsers keep the hashed files in `assets/` for a year. `public/_headers` does the same on Netlify or Cloudflare Pages.
+
 ## Edit the content
 
 All text lives in [`src/content.ts`](src/content.ts): profile, sections, projects, experience, courses and skills.
