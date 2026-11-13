@@ -254,6 +254,59 @@ function SideTabArt() {
   );
 }
 
+/*
+ * Things the speech bubble must never cover: the page header's pieces and the
+ * level card. When it would (a narrow phone, a short laptop window, a long title),
+ * fitBubble first nudges it sideways, then steps it down (levels.css, data-fit),
+ * until it is clear.
+ */
+const BUBBLE_OBSTACLES = [
+  '.section-header .title-bubble',
+  '.section-header .title-patch',
+  '.section-header .back-bubble',
+  '.section-header .section-sound',
+  '.levels-card',
+];
+const BUBBLE_GAP = 6; // px of clear space it keeps
+const MAX_FIT = 5;
+// Sideways nudges (px) tried before shrinking, nearest first.
+const BUBBLE_SHIFTS = [0, -14, 14, -28, 28, -44, 44];
+
+function fitBubble(bubble: HTMLElement) {
+  const box = bubble.parentElement?.parentElement; // bubble layer, then the globe box
+  if (!box) return;
+  const b = box.getBoundingClientRect();
+  if (b.width <= 0) return;
+  const obstacles = BUBBLE_OBSTACLES.flatMap((sel) => [...document.querySelectorAll(sel)])
+    .map((el) => el.getBoundingClientRect())
+    .filter((r) => r.width > 0 && r.height > 0);
+  // the arrow leaves the bubble here, so the bubble must keep covering it
+  const arrowX = b.left + (b.width * ARROW_START.x) / 100;
+  const viewRight = document.documentElement.clientWidth;
+  // Layout boxes (offset*), not getBoundingClientRect: the bubble may be mid pop-in (scaled).
+  const clear = (shift: number) => {
+    const left = b.left + bubble.offsetLeft + shift;
+    const top = b.top + bubble.offsetTop;
+    const right = left + bubble.offsetWidth;
+    const bottom = top + bubble.offsetHeight;
+    if (left > arrowX - 16 || right < arrowX + 16 || left < 4 || right > viewRight - 4) return false;
+    return obstacles.every(
+      (o) => right + BUBBLE_GAP <= o.left || o.right + BUBBLE_GAP <= left || bottom + BUBBLE_GAP <= o.top || o.bottom + BUBBLE_GAP <= top,
+    );
+  };
+  // Full size first, nudged sideways if that clears it; only then smaller.
+  for (let level = 0; level <= MAX_FIT; level += 1) {
+    bubble.dataset.fit = String(level);
+    for (const shift of BUBBLE_SHIFTS) {
+      if (clear(shift)) {
+        bubble.style.setProperty('--shift', `${shift}px`);
+        return;
+      }
+    }
+  }
+  bubble.style.setProperty('--shift', '0px');
+}
+
 // Cyan speech bubble above the globe's top-right, its arrow tip at the selected
 // badge's edge wherever the badge is (the arrow follows it while the planet turns).
 function LevelBubble({ item, hidden, reduce, points }: { item: LevelItem; hidden: boolean; reduce: boolean; points: PointStore }) {
@@ -273,6 +326,22 @@ function LevelBubble({ item, hidden, reduce, points }: { item: LevelItem; hidden
     return points.subscribe(draw);
   }, [points]);
 
+  // Fit it around the header and the card once it shows, and again on resize.
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const bubble = bubbleRef.current;
+    if (!bubble || hidden) return undefined;
+    const fit = () => fitBubble(bubble);
+    fit();
+    // the header may still be settling in: look again shortly
+    const later = window.setTimeout(fit, 450);
+    window.addEventListener('resize', fit);
+    return () => {
+      window.clearTimeout(later);
+      window.removeEventListener('resize', fit);
+    };
+  }, [hidden]);
+
   return (
     <motion.div
       className="levels-bubble-layer"
@@ -288,7 +357,7 @@ function LevelBubble({ item, hidden, reduce, points }: { item: LevelItem; hidden
         <path className="levels-arrow-fill" d={RESTING_ARROW.shaft} vectorEffect="non-scaling-stroke" />
         <polygon className="levels-arrow-fill" points={RESTING_ARROW.head} vectorEffect="non-scaling-stroke" />
       </svg>
-      <div className="levels-bubble">
+      <div ref={bubbleRef} className="levels-bubble" data-fit="0">
         <p className="levels-bubble-title">{item.title}</p>
         {item.meta ? <p className="levels-bubble-meta">{item.meta}</p> : null}
       </div>

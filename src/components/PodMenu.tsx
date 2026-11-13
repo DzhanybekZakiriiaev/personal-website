@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { profile } from '../content';
 import { ButtonHints } from './ButtonHints';
 import { TextStickerLink } from './Sticker';
@@ -33,6 +33,81 @@ function BackRocketIcon() {
   );
 }
 
+/** A chain link, for the narrow screens' Links button. */
+function LinkIcon() {
+  return (
+    <svg className="stitch-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+type OutLink = { href: string; label: string; color: string };
+
+// Narrow screens: the outside links fold into one round felt "Links" button that drops a
+// small stitched card with the stickers. Closes on a click outside, Escape, or when
+// focus moves on.
+function LinksMenu({ links }: { links: OutLink[] }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelId = `links-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      buttonRef.current?.focus();
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div
+      ref={wrapRef}
+      className="links-menu"
+      onBlur={(e) => {
+        if (!wrapRef.current?.contains(e.relatedTarget as Node | null)) setOpen(false);
+      }}
+    >
+      <button
+        ref={buttonRef}
+        type="button"
+        className="round-felt links-menu-button"
+        aria-label="Links"
+        title="Links"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <LinkIcon />
+      </button>
+      <ul id={panelId} className="links-menu-panel" hidden={!open}>
+        {links.map((link, i) => (
+          <li key={link.href}>
+            <TextStickerLink href={link.href} label={link.label} color={link.color} tilt={i % 2 === 0 ? -3 : 2} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 // The pod: the scene every page lives in. On its own it is the planet carousel; with a
 // section open, the section's planet is focused and the pod's own chrome steps back.
 export function PodMenu({ selected, onSelect, restoreFocus, active = true, focus = null, onBackToStart }: PodMenuProps) {
@@ -42,9 +117,28 @@ export function PodMenu({ selected, onSelect, restoreFocus, active = true, focus
   }, [active]);
 
   const focused = focus !== null;
+  const links: OutLink[] = profile.resumeUrl
+    ? [...profile.links, { href: profile.resumeUrl, label: 'Resume', color: '#2e9e6a' }]
+    : profile.links;
 
   return (
     <div className={`pod${focused ? ' is-focused' : ''}`}>
+      {/* The name card lives on the start screen; screen readers still get a page heading. */}
+      {focused ? null : <h1 className="visually-hidden">{profile.name}</h1>}
+
+      {/* Narrow screens: everything in one compact row (the column and the link
+          stickers below are hidden there, see stitch-controls.css). */}
+      <div className="pod-bar" inert={focused}>
+        {onBackToStart ? (
+          <button type="button" className="round-felt" aria-label="Back to start" title="Back to start" data-sound="back" onClick={onBackToStart}>
+            <BackRocketIcon />
+          </button>
+        ) : null}
+        <SoundStitch compact />
+        <ViewToggle current="3d" compact />
+        <LinksMenu links={links} />
+      </div>
+
       {/* Left column: back to the start screen, and the music. */}
       <div className="pod-side" inert={focused}>
         {onBackToStart ? (
@@ -60,19 +154,12 @@ export function PodMenu({ selected, onSelect, restoreFocus, active = true, focus
       </div>
 
       <header className="pod-header" inert={focused}>
-        {/* The name card lives on the start screen; screen readers still get a page heading. */}
-        {focused ? null : <h1 className="visually-hidden">{profile.name}</h1>}
         <ul className="link-stickers" aria-label="Elsewhere">
-          {profile.links.map((link, i) => (
+          {links.map((link, i) => (
             <li key={link.href}>
               <TextStickerLink href={link.href} label={link.label} color={link.color} tilt={i % 2 === 0 ? -5 : 4} />
             </li>
           ))}
-          {profile.resumeUrl ? (
-            <li>
-              <TextStickerLink href={profile.resumeUrl} label="Resume" color="#2e9e6a" tilt={-3} />
-            </li>
-          ) : null}
         </ul>
       </header>
 

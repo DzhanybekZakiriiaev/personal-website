@@ -25,19 +25,21 @@ function SideIcon({ mode }: { mode: ViewMode }) {
   );
 }
 
-export function ViewToggle({ current, className = '' }: { current: ViewMode; className?: string }) {
+/** compact: icons only (narrow screens); the words stay for screen readers and as tooltips. */
+export function ViewToggle({ current, className = '', compact = false }: { current: ViewMode; className?: string; compact?: boolean }) {
+  const word = (label: string) => <span className={compact ? 'visually-hidden' : undefined}>{label}</span>;
   return (
-    <div className={`view-toggle ${className}`} role="group" aria-label="View" data-current={current}>
+    <div className={`view-toggle${compact ? ' view-toggle--compact' : ''} ${className}`} role="group" aria-label="View" data-current={current}>
       {SIDES.map(({ mode, label }) =>
         mode === current ? (
-          <span key={mode} className="view-toggle-side is-current" aria-current="true">
+          <span key={mode} className="view-toggle-side is-current" aria-current="true" title={compact ? label : undefined}>
             <SideIcon mode={mode} />
-            {label}
+            {word(label)}
           </span>
         ) : (
-          <a key={mode} className="view-toggle-side" href={viewUrl(mode)} data-no-sound>
+          <a key={mode} className="view-toggle-side" href={viewUrl(mode)} data-no-sound title={compact ? `${label} view` : undefined}>
             <SideIcon mode={mode} />
-            {label}
+            {word(label)}
             <span className="visually-hidden"> view</span>
           </a>
         ),

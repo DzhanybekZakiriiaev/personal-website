@@ -181,13 +181,43 @@
   transform: rotate(1.5deg);
 }
 
+/* ---------- Narrow screens: one compact row instead of the column and stickers ---------- */
+.pod-bar {
+  display: none;
+}
+
 @media (max-width: 760px) {
   .pod-side {
-    position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
+    display: none;
+  }
+
+  .pod-bar {
+    position: relative;
+    z-index: 6;
+    display: flex;
     align-items: center;
-    margin-bottom: 8px;
+    gap: 10px;
+    margin-bottom: 4px;
+    transition: opacity 0.3s ease 0.25s;
+  }
+
+  .pod.is-focused .pod-bar {
+    opacity: 0;
+    visibility: hidden;
+    transition-delay: 0s;
+    transition-duration: 0.2s;
+  }
+
+  .pod-bar .sound-round,
+  .pod-bar .round-felt {
+    width: 44px;
+    height: 44px;
+    font-size: 1.05rem;
+  }
+
+  .pod-bar .round-felt .stitch-icon {
+    width: 1.4em;
+    height: 1.4em;
   }
 
   .stitch-tag {
@@ -217,8 +247,10 @@
   transform: rotate(-1.5deg);
 }
 
-/* ---------- Compact sound button (section pages): a round felt button ---------- */
-.sound-round {
+/* ---------- Round felt buttons: the compact sound button (section pages, narrow
+   screens) and the narrow pod bar's Back to start ---------- */
+.sound-round,
+.round-felt {
   position: relative;
   flex: none;
   display: grid;
@@ -240,7 +272,8 @@
 }
 
 /* running stitch round the button */
-.sound-round::after {
+.sound-round::after,
+.round-felt::after {
   content: '';
   position: absolute;
   inset: 5px;
@@ -250,7 +283,9 @@
 }
 
 .sound-round:hover::after,
-.sound-round:focus-visible::after {
+.sound-round:focus-visible::after,
+.round-felt:hover::after,
+.round-felt:focus-visible::after {
   border-color: #8a5a2b;
 }
 
@@ -258,7 +293,8 @@
   color: #6e4b2c;
 }
 
-.sound-round:focus-visible {
+.sound-round:focus-visible,
+.round-felt:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 5px;
 }
@@ -269,11 +305,13 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .sound-round {
+  .sound-round,
+  .round-felt {
     transition: transform 0.18s ease;
   }
 
-  .sound-round:hover {
+  .sound-round:hover,
+  .round-felt:hover {
     transform: translateY(-2px) rotate(-4deg);
   }
 }
@@ -286,4 +324,69 @@
   .stitch-button:hover {
     transform: rotate(-2deg) translateY(-2px);
   }
+}
+
+/* ---------- Links menu (narrow screens): a felt button and a small stitched card ---------- */
+.links-menu {
+  position: relative;
+  margin-left: auto;
+}
+
+/* The button itself is a .round-felt like its neighbours; open, it turns pink. */
+.pod-bar .links-menu-button .stitch-icon {
+  width: 1.4em;
+  height: 1.4em;
+}
+
+.links-menu-button[aria-expanded="true"] {
+  color: #fff;
+  background-color: var(--pink);
+}
+
+.links-menu-button[aria-expanded="true"]::after {
+  border-color: rgb(255 255 255 / 0.6);
+}
+
+.links-menu-panel {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  justify-items: end;
+  gap: 14px;
+  min-width: 170px;
+  margin: 0;
+  padding: 18px 18px 20px;
+  list-style: none;
+  background-color: #fff3d4;
+  background-image: radial-gradient(rgb(120 80 30 / 0.07) 1px, transparent 1px);
+  background-size: 5px 5px;
+  border-radius: 16px;
+  box-shadow:
+    0 0 0 3px #e3c995,
+    0 10px 22px rgb(0 0 0 / 0.4);
+}
+
+.links-menu-panel[hidden] {
+  display: none;
+}
+
+.links-menu-panel::after {
+  content: ;
+  position: absolute;
+  inset: 6px;
+  border: 1.5px dashed rgb(138 90 43 / 0.5);
+  border-radius: 11px;
+  pointer-events: none;
+}
+
+.links-menu-panel li {
+  position: relative;
+  z-index: 1;
+}
+
+.links-menu-panel .text-sticker {
+  min-height: 40px;
+  font-size: 1.05rem;
 }

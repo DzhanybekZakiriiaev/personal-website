@@ -1103,9 +1103,16 @@
   font-weight: 700;
 }
 
+/* Email and LinkedIn: two buttons the same size */
+.s-actions--big {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 11rem));
+}
+
 .s-actions--big a {
   font-size: 1.1rem;
   padding: 10px 20px 11px;
+  text-align: center;
 }
 
 .s-envelope > * {

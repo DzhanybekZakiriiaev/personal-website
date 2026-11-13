@@ -379,8 +379,8 @@ export function SimpleSite({ reason }: { reason: SimpleReason | null }) {
             <p className="s-envelope-to">To: {profile.name}</p>
             <p>Co-ops, projects or research ideas: I'd love to hear from you.</p>
             <p className="s-actions s-actions--big">
-              <a href={`mailto:${contactEmail}`}>Email me</a>
-              {linkedIn ? <External href={linkedIn.href}>Message me on LinkedIn</External> : null}
+              <a href={`mailto:${contactEmail}`}>Email</a>
+              {linkedIn ? <External href={linkedIn.href}>LinkedIn</External> : null}
             </p>
           </article>
         </section>

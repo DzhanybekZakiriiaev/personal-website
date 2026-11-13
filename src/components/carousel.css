@@ -315,6 +315,9 @@
   }
 
   .orbit-note {
+    padding: 0.3em 0.7em 0.35em;
+    font-size: clamp(0.95rem, 3.6vw, 1.15rem);
+    letter-spacing: 0.03em;
     left: 70%;
     /* the box is scaled by about 70/76 on phones; this keeps the bubble on screen */
     max-width: calc((50vw - var(--s) * 0.2 - 14px) * 1.08);
