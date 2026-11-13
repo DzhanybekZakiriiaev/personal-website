@@ -4,7 +4,6 @@
    transparent so the crumpled paper backdrop shows through.
    ========================================================= */
 .title {
-  --drop: clamp(26px, 5vh, 52px);
   position: fixed;
   inset: 0;
   z-index: 1500;
@@ -40,57 +39,20 @@
   pointer-events: none;
 }
 
-/* ---------- Cardboard name sign on two strings ---------- */
+/* ---------- Cardboard name sign ---------- */
 .title-sign-area {
   grid-area: sign;
   display: flex;
   justify-content: center;
   width: 100%;
-  /* the strings hang from just below a phone's notch or status bar */
-  padding-top: calc(8px + env(safe-area-inset-top));
+  /* clear of a phone's notch or status bar */
+  padding-top: calc(16px + env(safe-area-inset-top));
 }
 
 .title-hang {
   position: relative;
   width: fit-content;
   max-width: 100%;
-  padding-top: var(--drop);
-  transform-origin: 50% 0;
-}
-
-.title-string {
-  position: absolute;
-  top: 0;
-  z-index: 1;
-  width: 2px;
-  background: repeating-linear-gradient(180deg, #6f5133 0 3px, #a5835d 3px 6px);
-  border-radius: 1px;
-}
-
-/* The sign tilts left, so its left hole sits a little lower. */
-.title-string--left {
-  left: 20%;
-  height: calc(var(--drop) + 13px);
-}
-
-.title-string--right {
-  right: 20%;
-  height: calc(var(--drop) + 9px);
-}
-
-.title-string::before {
-  content: '';
-  position: absolute;
-  top: -6px;
-  left: 50%;
-  width: 13px;
-  height: 13px;
-  margin-left: -6.5px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 38% 34%, #ff8fbd, var(--pink) 72%);
-  box-shadow:
-    0 0 0 2px #fff,
-    0 2px 3px rgb(0 0 0 / 0.35);
 }
 
 .title-sign {
@@ -112,29 +74,6 @@
   outline: 2px dashed rgb(90 55 20 / 0.55);
   outline-offset: -9px;
   transform: rotate(-1.5deg);
-}
-
-/* punched holes where the strings go in, inside the stitch */
-.title-sign::before,
-.title-sign::after {
-  content: '';
-  position: absolute;
-  top: 14px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #5a3a1c;
-  box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.5);
-}
-
-.title-sign::before {
-  left: 20%;
-  margin-left: -3px;
-}
-
-.title-sign::after {
-  right: 20%;
-  margin-right: -3px;
 }
 
 .title-name {
@@ -390,7 +329,6 @@
 
 @media (max-height: 520px) {
   .title {
-    --drop: 18px;
   }
 
   .title-name {
@@ -445,9 +383,7 @@
 /* ---------- Motion (only when the visitor hasn't asked for less) ---------- */
 @media (prefers-reduced-motion: no-preference) {
   .title-hang {
-    animation:
-      title-drop 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.25) 0.1s both,
-      title-swing 4.6s ease-in-out 0.9s infinite;
+    animation: title-rise 0.6s ease-out 0.15s both;
   }
 
   /* Entrances sit on inner elements, so the wrappers are free to transition away. */
@@ -485,30 +421,6 @@
 
   .title.is-launching .title-start-tag {
     animation: none;
-  }
-}
-
-@keyframes title-drop {
-  from {
-    opacity: 0;
-    transform: translateY(-40px) rotate(-6deg);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes title-swing {
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-  25% {
-    transform: rotate(1.6deg);
-  }
-  75% {
-    transform: rotate(-1.6deg);
   }
 }
 

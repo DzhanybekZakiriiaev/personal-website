@@ -161,8 +161,6 @@ export function SimpleSite({ reason }: { reason: SimpleReason | null }) {
         {canTry3d ? <ViewToggle current="simple" className="s-view" /> : null}
         <div className="s-hero">
           <div className="s-hang">
-            <span className="s-string s-string--l" aria-hidden="true" />
-            <span className="s-string s-string--r" aria-hidden="true" />
             <div className="s-sign">
               <h1>{profile.name}</h1>
               <p className="s-role">

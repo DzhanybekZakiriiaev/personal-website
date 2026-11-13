@@ -1,6 +1,6 @@
 /* =========================================================
    The simple version (SimpleSite.tsx): the 3D site's handmade
-   look without the 3D. Denim, a cardboard sign on strings, a
+   look without the 3D. Denim, a cardboard sign, a
    paper cut-out rocket, a woven ribbon of felt tabs and burlap,
    felt and paper cards with running stitches. Light to load,
    easy to read and print.
@@ -63,7 +63,7 @@
   margin: 0 auto;
 }
 
-/* ---------- Header: sign on strings, cut-out rocket, pitch, links ---------- */
+/* ---------- Header: cardboard sign, cut-out rocket, pitch, links ---------- */
 .s-top {
   position: relative;
   padding-top: 20px;
@@ -89,27 +89,6 @@
   position: relative;
   justify-self: center;
   max-width: 100%;
-  padding-top: 34px;
-}
-
-.s-string {
-  position: absolute;
-  top: -40px;
-  width: 3px;
-  height: 80px;
-  background: repeating-linear-gradient(180deg, #f4ead2 0 6px, #cdbf9f 6px 8px);
-  border-radius: 2px;
-  box-shadow: 1px 0 0 rgb(0 0 0 / 0.25);
-}
-
-.s-string--l {
-  left: 22%;
-  transform: rotate(4deg);
-}
-
-.s-string--r {
-  right: 22%;
-  transform: rotate(-4deg);
 }
 
 .s-sign {
@@ -1152,10 +1131,6 @@
     height: 120px;
   }
 
-  .s-hang {
-    padding-top: 28px;
-  }
-
   .s-tabs {
     padding: 10px 8px 12px;
   }
@@ -1223,7 +1198,6 @@
   .s-view,
   .s-skip,
   .cr,
-  .s-string,
   .s-footer,
   .s-stamp {
     display: none !important;

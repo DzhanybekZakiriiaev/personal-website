@@ -246,8 +246,6 @@ export function TitleScreen({ onStart, returning = false }: TitleScreenProps) {
       <div className="title-inner">
         <div className="title-sign-area">
           <div className="title-hang">
-            <span className="title-string title-string--left" aria-hidden="true" />
-            <span className="title-string title-string--right" aria-hidden="true" />
             <div className="title-sign">
               <h1 id={headingId} className="title-name">
                 {profile.name}
