@@ -37,7 +37,7 @@ function BackRocketIcon() {
 export function PodMenu({ selected, onSelect, restoreFocus, active = true, focus = null, onBackToStart }: PodMenuProps) {
   // Every time the pod opens (first load, or back from a section).
   useEffect(() => {
-    if (active) document.title = profile.name;
+    if (active) document.title = `${profile.name} · ${profile.tagline}`;
   }, [active]);
 
   const focused = focus !== null;

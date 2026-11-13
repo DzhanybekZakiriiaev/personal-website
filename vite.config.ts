@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { seo } from './seo.plugin';
 
 // Big libraries in their own chunks: they download in parallel (Vite adds
 // <link rel="modulepreload"> for each), and a site-only change keeps their file
@@ -13,7 +14,9 @@ const VENDOR_CHUNKS: [string, RegExp][] = [
 
 // base './' keeps asset paths relative, so the build also works on GitHub Pages.
 export default defineConfig({
-  plugins: [react()],
+  // seo(): meta and social tags, JSON-LD, a no-JavaScript text version, robots.txt,
+  // sitemap.xml and llms.txt, all from src/content.ts (see seo.plugin.ts).
+  plugins: [react(), seo()],
   base: './',
   build: {
     // three alone is ~700 kB minified; the split above is the useful lever, not this warning.

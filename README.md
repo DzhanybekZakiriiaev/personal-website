@@ -24,6 +24,21 @@ All text lives in [`src/content.ts`](src/content.ts): profile, sections, project
 
 - **Resume link:** put a PDF at `public/resume.pdf` and set `resumeUrl: './resume.pdf'`.
 - **Email on the Contact page:** set `email`. It will be public.
+- **Site address:** set `siteUrl` (for example `'https://example.com'`, no trailing slash). It turns on the canonical link, the social preview image and `sitemap.xml`.
+
+## SEO and crawlers
+
+[`seo.plugin.ts`](seo.plugin.ts) builds these from `src/content.ts`, so they always match the site:
+
+- The page title, description, Open Graph and Twitter cards (preview image: [`public/og-image.jpg`](public/og-image.jpg), 1200 × 630), and JSON-LD describing you as a Person.
+- A plain-text version of the whole site inside `<noscript>`, for visitors without JavaScript and for crawlers that don't run it.
+- `robots.txt` (every crawler is welcome, search engines and AI assistants alike), `sitemap.xml`, and `llms.txt` (a Markdown summary for AI assistants).
+
+## Sound
+
+- Background music: put one audio file (mp3, ogg, m4a or opus) in `src/assets/audio/`. It starts once the loading screen is done, or on the first click or key press where the browser blocks sound until then. With no file there is no music.
+- Button sounds are generated in code (soft felt pops and plucks). To use recordings instead, add files named `press`, `hover`, `open`, `back`, `start` or `toggle` (any audio format) to `src/assets/audio/ui/`.
+- The **Sound** stitch (on the start screen and the planets screen) turns everything on or off and sets the volume; the choice is remembered.
 
 ## Controls
 
@@ -32,9 +47,9 @@ All text lives in [`src/content.ts`](src/content.ts): profile, sections, project
 | ← → | Choose a planet |
 | Home / End | First or last planet |
 | Enter | Open it |
-| Esc | Back to the pod |
+| Esc | Back to the planets |
 
-Mouse and touch work too. Every section has its own link (`#/projects`, `#/experience`, `#/about`, `#/contact`).
+Mouse and touch work too. **Back to start** (top left of the planets screen) flies the rocket back to the start screen. Every section has its own link (`#/projects`, `#/experience`, `#/about`, `#/contact`).
 
 ## Accessibility
 

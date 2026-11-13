@@ -98,6 +98,9 @@ export const profile = {
   fullName: 'Dzhanybek (Johnny) Zakiriiaev',
   tagline: 'Applied AI, data engineering and full-stack',
   location: 'Waterloo, Ontario',
+  // The site's public address, e.g. 'https://example.com' (no trailing slash). Used for
+  // the canonical link, social previews, sitemap.xml and robots.txt (seo.plugin.ts).
+  siteUrl: '',
   pitch:
     "I build things. Lately that's been full-stack software, data pipelines, AI assistants and integrations for companies in Toronto and Vancouver. Before that, I helped build a patient records platform used by public hospitals in Bishkek.",
   // Put your resume at public/resume.pdf and set resumeUrl to './resume.pdf' to show the link.
