@@ -347,8 +347,11 @@
   transform: translateY(28px) scale(0.94);
 }
 
-/* ---------- Wide screens (and short landscape phones): summary beside the rocket ---------- */
-@media (min-width: 900px) and (min-height: 560px), (min-width: 600px) and (max-height: 520px) and (orientation: landscape) {
+/* ---------- Wide screens (and short landscape phones): summary beside the rocket ----------
+   Any height from 900px wide: a laptop window can be short (browser bars, an info bar,
+   DevTools), and there must be no height where it falls back to the phone layout. Short
+   windows also get the compact sizes below (max-height: 520px). */
+@media (min-width: 900px), (min-width: 600px) and (max-height: 520px) and (orientation: landscape) {
   .title-inner {
     grid-template-columns: minmax(330px, 0.8fr) minmax(0, 1.2fr);
     grid-template-rows: auto auto 1fr;

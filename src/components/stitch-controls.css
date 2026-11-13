@@ -206,22 +206,65 @@
   transform: rotate(-1.5deg);
 }
 
-/* Section pages: Back, then the sound stitch, on one row above the title. */
-.section-top {
-  grid-area: back;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
+/* ---------- Compact sound button (section pages): a round felt button ---------- */
+.sound-round {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  font-size: 1.15rem;
+  color: #4a2a12;
+  background-color: #fff3d4;
+  background-image: radial-gradient(rgb(120 80 30 / 0.07) 1px, transparent 1px);
+  background-size: 5px 5px;
+  border: 0;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px #e3c995,
+    0 4px 0 3px rgb(0 0 0 / 0.3);
+  cursor: pointer;
 }
 
-.section-top .sound-stitch {
-  transform: rotate(1.5deg);
+/* running stitch round the button */
+.sound-round::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 2px dashed rgb(138 90 43 / 0.55);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.sound-round:hover::after,
+.sound-round:focus-visible::after {
+  border-color: #8a5a2b;
+}
+
+.sound-round[aria-pressed='false'] {
+  color: #6e4b2c;
+}
+
+.sound-round:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 5px;
 }
 
 /* The scene section lets clicks through to the planet except on its own controls. */
-.section.section--scene .sound-stitch {
+.section.section--scene .sound-round {
   pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sound-round {
+    transition: transform 0.18s ease;
+  }
+
+  .sound-round:hover {
+    transform: translateY(-2px) rotate(-4deg);
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

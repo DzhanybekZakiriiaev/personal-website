@@ -167,7 +167,7 @@ export const projects: Project[] = [
     devpostUrl: 'https://devpost.com/software/clascade',
     logo: cuhackingLogo,
     title: 'Clascade',
-    badge: '1st of 200+ · Best Use of AI · cuHacking 2026',
+    badge: '1st of 200+ · Best Use of Gemini · cuHacking 2026',
     when: 'Carleton University',
     icon: 'book',
     color: '#2e9e6a',

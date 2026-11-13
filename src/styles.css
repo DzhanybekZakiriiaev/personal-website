@@ -363,20 +363,22 @@ a {
   padding: 20px 16px 120px;
 }
 
+/* One compact row: Back, the title pill (with its patch), the sound button at the end.
+   Kept short so the globe, tabs and card fit above the hint bar (levels.css budget). */
 .section-header {
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-areas:
-    'back'
-    'title';
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 14px 20px;
-  margin-bottom: 18px;
+  gap: 12px 22px;
+  margin-bottom: 4px;
+}
+
+.section-header .section-sound {
+  margin-left: auto;
 }
 
 .back-bubble {
-  grid-area: back;
-  justify-self: start;
+  flex: none;
   display: inline-flex;
   align-items: center;
   min-height: 44px;
@@ -403,20 +405,26 @@ a {
 }
 
 .title-bubble {
-  grid-area: title;
-  justify-self: start;
   margin: 0;
-  padding: 0.12em 0.8em 0.2em;
-  font-size: clamp(2rem, 6vw, 3.4rem);
+  padding: 0.08em 0.75em 0.14em;
+  font-size: clamp(1.7rem, 3.2vw, 2.5rem);
   font-weight: 700;
   color: #fff;
   background: var(--pink);
-  border: 4px solid var(--pink-dark);
+  border: 3px solid var(--pink-dark);
   border-radius: 999px;
   box-shadow:
-    0 0 0 5px #fff,
-    0 10px 0 rgb(0 0 0 / 0.35);
+    0 0 0 4px #fff,
+    0 7px 0 rgb(0 0 0 / 0.35);
   transform: rotate(-2deg);
+}
+
+/* Phones: Back and the sound button on top, the title on its own line under them. */
+@media (max-width: 759.98px) {
+  .section-header .title-wrap {
+    order: 3;
+    flex-basis: 100%;
+  }
 }
 
 .title-bubble:focus:not(:focus-visible) {
@@ -425,9 +433,8 @@ a {
 
 /* The title and the felt patch sewn onto its lower edge (e.g. 'Featured' on Projects) */
 .title-wrap {
-  grid-area: title;
-  justify-self: start;
   position: relative;
+  flex: none;
 }
 
 .title-patch {

@@ -65,6 +65,7 @@ Mouse and touch work too. **Back to start** (top left of the planets screen) fli
 
 - Inspired by the pod menu in the PlayStation game LittleBigPlanet. Apart from the Sackboy model below, all artwork here is original, drawn in code. This site is not affiliated with Sony Interactive Entertainment or Media Molecule.
 - Sackboy model: ["Play Station 3 - Little Big Planet - Sackboy"](https://sketchfab.com/3d-models/play-station-3-little-big-planet-sackboy-9a7c12661954431a9eb25fdd24044a18) by [AAAAAAAAAAAAA (@KPCOOKIESWIRL)](https://sketchfab.com/KPCOOKIESWIRL), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Changes: textures re-encoded as JPEG, and the model is rigged and animated in code (`src/three/Sackboy.tsx`). Sackboy is a character of Sony Interactive Entertainment.
+- Background music (`src/assets/audio/background-music.mp3`): "The Orb of Dreamers" from the LittleBigPlanet 2 soundtrack, © Sony Interactive Entertainment.
 - Fonts: [Fredoka](https://fonts.google.com/specimen/Fredoka) and [Atkinson Hyperlegible Next](https://fonts.google.com/specimen/Atkinson+Hyperlegible+Next), both under the SIL Open Font License.
 - Libraries:
   - [React](https://react.dev) (MIT)

@@ -15,9 +15,10 @@
 /*
  * Height budget, so the globe, tabs and card sit above the fixed hint bar on
  * laptop screens (1366x768 to 1920x1080). --levels-reserve is everything in the
- * viewport's height that is not the globe: page header (~184px), bubble headroom
- * (48px), tabs row (~80px) and the hint bar (~90px). Override it from outside
- * if the header changes.
+ * viewport's height that is not the globe: page header (one row, ~80px, plus room
+ * for the title's patch), bubble headroom (48px), tabs row (~80px) and the hint bar
+ * (~90px), with some slack so the card's bottom stays clear of the hint bar.
+ * Override it from outside if the header changes.
  */
 .levels .levels-layout {
   --globe: clamp(260px, min(100vh - var(--levels-reserve, 404px), 44vw), 560px);

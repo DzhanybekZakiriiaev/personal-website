@@ -18,9 +18,28 @@ function SpeakerIcon({ on }: { on: boolean }) {
   );
 }
 
-export function SoundStitch({ className = '' }: { className?: string }) {
+/**
+ * compact: just the on/off button, as a small round felt button (section pages, where
+ * space is tight; the volume slider lives on the start and planets screens).
+ */
+export function SoundStitch({ className = '', compact = false }: { className?: string; compact?: boolean }) {
   const { on, volume } = useSound();
   const level = on ? Math.round(volume * 100) : 0;
+  if (compact) {
+    return (
+      <button
+        type="button"
+        className={`sound-round ${className}`}
+        aria-label="Sound"
+        aria-pressed={on}
+        data-sound-control
+        data-sound="toggle"
+        onClick={() => setSoundOn(!on)}
+      >
+        <SpeakerIcon on={on} />
+      </button>
+    );
+  }
   return (
     <div className={`stitch-tag sound-stitch ${className}`} data-sound-control data-sound="toggle">
       <button type="button" className="sound-toggle" aria-pressed={on} onClick={() => setSoundOn(!on)}>

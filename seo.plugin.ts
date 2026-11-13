@@ -226,7 +226,8 @@ export function seo(): Plugin {
       const out = html
         .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
         .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/, `$1${esc(desc)}$2`)
-        .replace(/<noscript>[\s\S]*?<\/noscript>/, `<noscript>${fallbackHtml(c)}\n    </noscript>`);
+        // Only the marked block: index.html also mentions <noscript> in a script comment.
+        .replace(/<noscript id="seo-fallback">[\s\S]*?<\/noscript>/, `<noscript id="seo-fallback">${fallbackHtml(c)}\n    </noscript>`);
       return { html: out, tags };
     },
     generateBundle() {

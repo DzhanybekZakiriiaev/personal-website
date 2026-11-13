@@ -67,14 +67,11 @@ export function SectionPage({ id, instant = false, active = true }: { id: Sectio
 
   return (
     <div className={`section section--planet section--scene is-${phase}`}>
+      {/* One compact row: Back, the title (with its patch), the sound button. */}
       <header className="section-header">
-        <div className="section-top">
-          <a className="back-bubble" href="#/" data-sound="back">
-            <span aria-hidden="true">← </span>Back<span className="visually-hidden"> to the planets</span>
-          </a>
-          {/* Music and button sounds can be stopped from every screen. */}
-          <SoundStitch />
-        </div>
+        <a className="back-bubble" href="#/" data-sound="back">
+          <span aria-hidden="true">← </span>Back<span className="visually-hidden"> to the planets</span>
+        </a>
         <div className="title-wrap">
           <h1 ref={heading} tabIndex={-1} className="title-bubble">
             {section.label}
@@ -88,6 +85,8 @@ export function SectionPage({ id, instant = false, active = true }: { id: Sectio
             </p>
           ) : null}
         </div>
+        {/* Music and button sounds can be stopped from every screen. */}
+        <SoundStitch compact className="section-sound" />
       </header>
 
       <main id="main" className="section-main">
