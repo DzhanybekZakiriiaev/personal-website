@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 /*
- * The pilot: Johnny's knitted doll in its felt rocket, flying around whatever the
+ * The pilot: Sackboy in his felt rocket, flying around whatever the
  * site is showing. One small transparent canvas (<Pilot />, src/components/Pilot.tsx,
  * mounted once when the site phase starts) draws it; everything else talks to it
  * through this store. No React context needed.
@@ -32,6 +32,8 @@ import { useSyncExternalStore } from 'react';
  * - pilotHold(): the start screen's own rocket is flying; the pilot stays hidden.
  * - pilotTakeOver(): the start screen's rocket has landed on pilotStartPose(target);
  *     the pilot appears exactly there and carries on around the orbit.
+ * - getPilotLivePose(): where the pilot is on screen this frame ("Back to start" flies
+ *     the start screen's rocket on from there, then calls pilotHold()).
  * - Depth: the pilot layer's z-index switches between var(--pilot-z-front, 4) and
  *     var(--pilot-z-back, 0) at the far left and right of the orbit, where the rocket is
  *     clear of the planet's disc, so the swap never shows. Define those two custom
@@ -125,6 +127,19 @@ export function pilotTakeOver(): void {
 
 export function getPilotState(): PilotState {
   return state;
+}
+
+/* The pilot's pose on screen right now (written every frame by the pilot layer), so
+   "Back to start" can pick the rocket up exactly where it is. Null while hidden. */
+let livePose: PilotPose | null = null;
+
+export function reportPilotPose(pose: PilotPose | null): void {
+  livePose = pose;
+}
+
+/** Where the pilot is on screen this frame, or null if it is not showing. */
+export function getPilotLivePose(): PilotPose | null {
+  return livePose;
 }
 
 export function subscribePilot(listener: () => void): () => void {

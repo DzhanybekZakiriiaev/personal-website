@@ -47,23 +47,56 @@ function usePreload(): { ready: boolean; progress: number } {
  */
 type Phase = 'loading' | 'title' | 'site';
 
-function usePhase(ready: boolean, route: Route): { phase: Phase; start: () => void } {
-  const [wantsTitle] = useState(() => route === 'pod');
+function usePhase(
+  ready: boolean,
+  route: Route,
+): { phase: Phase; start: () => void; backToStart: () => void; visit: number } {
+  const [wantsTitle, setWantsTitle] = useState(() => route === 'pod');
   const [started, setStarted] = useState(false);
+  // Bumps on every "Back to start", so the start screen opens fresh each time.
+  const [visit, setVisit] = useState(0);
   const start = useCallback(() => setStarted(true), []);
+  const backToStart = useCallback(() => {
+    setWantsTitle(true);
+    setStarted(false);
+    setVisit((v) => v + 1);
+  }, []);
   const phase: Phase = !ready ? 'loading' : wantsTitle && !started ? 'title' : 'site';
-  return { phase, start };
+  return { phase, start, backToStart, visit };
 }
+
+/** How long the pod fades out under the start screen after "Back to start". */
+const LEAVE_MS = 600;
 
 export default function App() {
   const route = useHashRoute();
   const { ready, progress } = usePreload();
-  const { phase, start } = usePhase(ready, route);
+  const { phase, start, backToStart, visit } = usePhase(ready, route);
   const [selected, setSelected] = useState(() => {
     const index = sections.findIndex((s) => s.id === route);
     return index >= 0 ? index : START_INDEX;
   });
   const siteShown = phase === 'site';
+
+  // "Back to start": the pod stays visible (fading) while the rocket flies at the
+  // viewer, then hides as usual under the start screen.
+  const [leaving, setLeaving] = useState(false);
+  const goBackToStart = useCallback(() => {
+    setLeaving(true);
+    backToStart();
+  }, [backToStart]);
+  useEffect(() => {
+    if (!leaving) return undefined;
+    const timer = window.setTimeout(() => setLeaving(false), LEAVE_MS);
+    return () => window.clearTimeout(timer);
+  }, [leaving]);
+
+  // The pilot layer stays mounted once the site has been shown: it carries on drawing
+  // until the start screen's rocket picks it up, and it is not rebuilt on every visit.
+  const [pilotMounted, setPilotMounted] = useState(false);
+  useEffect(() => {
+    if (siteShown) setPilotMounted(true);
+  }, [siteShown]);
 
   // While the loading or start screen is up, the (invisible) site underneath must
   // not scroll: otherwise the page shows a second scrollbar next to the start
@@ -107,7 +140,12 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <SvgDefs />
       <Backdrop />
-      <div className="app-content" inert={!siteShown} data-hidden={siteShown ? undefined : true}>
+      <div
+        className="app-content"
+        inert={!siteShown}
+        data-hidden={siteShown || leaving ? undefined : true}
+        data-leaving={leaving && !siteShown ? true : undefined}
+      >
         <div className="pod-layer">
           <PodMenu
             active={siteShown && route === 'pod'}
@@ -115,14 +153,17 @@ export default function App() {
             selected={focus ?? selected}
             onSelect={setSelected}
             restoreFocus={cameBack}
+            onBackToStart={goBackToStart}
           />
         </div>
         <AnimatePresence mode="wait">
           {route !== 'pod' ? <SectionPage key={route} id={route} instant={deepLink.current} /> : null}
         </AnimatePresence>
       </div>
-      {siteShown ? <Pilot /> : null}
-      <AnimatePresence>{phase === 'title' ? <TitleScreen key="title" onStart={start} /> : null}</AnimatePresence>
+      {siteShown || pilotMounted ? <Pilot /> : null}
+      <AnimatePresence>
+        {phase === 'title' ? <TitleScreen key={`title-${visit}`} onStart={start} returning={visit > 0} /> : null}
+      </AnimatePresence>
       <AnimatePresence>{ready ? null : <LoadingScreen key="loading" progress={progress} />}</AnimatePresence>
     </MotionConfig>
   );

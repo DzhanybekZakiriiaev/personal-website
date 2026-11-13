@@ -1,5 +1,6 @@
-// The start screen ("the Me screen"): Johnny's knitted doll flies a felt rocket
-// and waves, next to a cardboard name sign and a short summary card. Start
+// The start screen ("the Me screen"): Sackboy flies a felt rocket and waves, next
+// to a cardboard name sign and a short summary card. "Back to start" on the pod
+// opens it again with the rocket flying back in from the pilot's spot. Start
 // (click, Enter or Space) plays the "takes control" moment, then onStart() fires
 // as the rocket sets off, so the planets appear behind it. This screen stays
 // mounted (usePresence) while the rocket flies down onto the pilot's start pose
@@ -9,23 +10,31 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import { motion, usePresence, useReducedMotion } from 'motion/react';
 import { profile } from '../content';
 import { pilotHold, pilotTakeOver } from '../lib/pilot';
+import { playUiSound } from '../lib/uiSounds';
 import { EXIT_TIME, RocketIntro, type RocketFrame } from '../three/RocketIntro';
 import { prefersReducedMotionNow } from '../three/StitchDoll';
 import { TextStickerLink } from './Sticker';
+import { SoundStitch } from './SoundStitch';
 import './title.css';
 
 export interface TitleScreenProps {
   /** Called as the rocket sets off (or after the reduced-motion fade); show the site then. */
   onStart: () => void;
+  /**
+   * Opened with "Back to start": the rocket picks the pilot up where it is, flies at
+   * the viewer and settles into its spot while the sign and card come back.
+   */
+  returning?: boolean;
 }
 
 /**
+ * return: "Back to start": the rocket flies back in from the pilot's spot.
  * title:  waiting for Start.
- * launch: grabbing the joystick, thumbs-up, flame flaring.
+ * launch: pulling the joystick, flame flaring.
  * flight: onStart() has fired; the rocket flies to the pilot's orbit while the rest leaves.
  * fading: reduced motion: a plain fade, then onStart().
  */
-type Stage = 'title' | 'launch' | 'flight' | 'fading';
+type Stage = 'return' | 'title' | 'launch' | 'flight' | 'fading';
 
 const LAUNCH_MS = 480;
 const FADE_MS = 300;
@@ -37,7 +46,7 @@ function sameFrame(a: RocketFrame, b: RocketFrame) {
   return Math.abs(a.cx - b.cx) < 0.002 && Math.abs(a.cy - b.cy) < 0.002 && Math.abs(a.w - b.w) < 0.002 && Math.abs(a.h - b.h) < 0.002;
 }
 
-export function TitleScreen({ onStart }: TitleScreenProps) {
+export function TitleScreen({ onStart, returning = false }: TitleScreenProps) {
   const reducedPref = useReducedMotion();
   const reduced = reducedPref ?? prefersReducedMotionNow();
   const [isPresent, safeToRemove] = usePresence();
@@ -46,7 +55,17 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const startRef = useRef<HTMLButtonElement>(null);
   const [frame, setFrame] = useState<RocketFrame>({ cx: 0.5, cy: 0.5, w: 1, h: 0.5 });
-  const [stage, setStage] = useState<Stage>('title');
+  const [stage, setStage] = useState<Stage>(() => (returning && !reduced ? 'return' : 'title'));
+  const flyingBack = useRef(stage === 'return');
+  const onReturnEnd = useCallback(() => {
+    flyingBack.current = false;
+    setStage((s) => (s === 'return' ? 'title' : s));
+  }, []);
+
+  // Back without a flight (reduced motion): the pilot just hides and this fades in.
+  useEffect(() => {
+    if (returning && reduced) pilotHold();
+  }, [returning, reduced]);
   const started = useRef(false);
   const appStarted = useRef(false);
   const tookOver = useRef(false);
@@ -75,8 +94,9 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
   }, []);
 
   const start = useCallback(() => {
-    if (started.current) return;
+    if (started.current || flyingBack.current) return; // not until the rocket is back in its spot
     started.current = true;
+    playUiSound('start');
     if (reduced) {
       setStage('fading');
       return;
@@ -193,19 +213,31 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
   }, []);
 
   const launching = stage === 'launch' || stage === 'flight';
-  const className = `title${launching ? ' is-launching' : ''}${stage === 'flight' ? ' is-leaving' : ''}`;
+  const className = `title${launching ? ' is-launching' : ''}${stage === 'flight' ? ' is-leaving' : ''}${
+    stage === 'return' ? ' is-returning' : ''
+  }`;
 
   return (
     <motion.section
       ref={rootRef}
       className={className}
       aria-labelledby={headingId}
-      initial={{ opacity: 0 }}
+      // Coming back, the rocket is already on screen: no fade for the scene (the sign
+      // and card make their usual entrance).
+      initial={{ opacity: returning && !reduced ? 1 : 0 }}
       animate={{ opacity: stage === 'fading' ? 0 : 1 }}
       transition={stage === 'fading' ? { duration: FADE_MS / 1000, ease: 'linear' } : { duration: reduced ? 0.25 : 0.5, ease: 'easeOut' }}
     >
       <div className="title-scene" aria-hidden="true">
-        <RocketIntro launching={launching && !reduced} exiting={stage === 'flight'} onFlightEnd={onFlightEnd} reduced={reduced} frame={frame} />
+        <RocketIntro
+          launching={launching && !reduced}
+          exiting={stage === 'flight'}
+          onFlightEnd={onFlightEnd}
+          returning={stage === 'return'}
+          onReturnEnd={onReturnEnd}
+          reduced={reduced}
+          frame={frame}
+        />
       </div>
 
       <div className="title-inner">
@@ -228,7 +260,8 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
           <div ref={stageRef} className="title-stage" />
           <div className="title-actions">
             <div className="title-actions-inner">
-              <button ref={startRef} type="button" className="title-start" onClick={start}>
+              {/* start() plays its own sound, for Enter anywhere too */}
+              <button ref={startRef} type="button" className="title-start" onClick={start} data-no-sound>
                 <span className="title-start-tag">
                   Start
                   <kbd className="title-key" aria-hidden="true">
@@ -256,6 +289,7 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
               ))}
             </ul>
           ) : null}
+          <SoundStitch className="title-sound" />
         </div>
       </div>
     </motion.section>

@@ -39,6 +39,8 @@ export interface SectionDef {
   label: string;
   note: string;
   planet: PlanetKind;
+  /** A small felt patch sewn onto the section page's title, e.g. 'Featured'. */
+  patch?: string;
 }
 
 export interface LinkDef {
@@ -92,7 +94,7 @@ export interface CourseTerm {
 }
 
 export const profile = {
-  name: 'Johnny Zakiriiaev',
+  name: 'Dzhanybek (Johnny) Zakiriiaev',
   fullName: 'Dzhanybek (Johnny) Zakiriiaev',
   tagline: 'Applied AI, data engineering and full-stack',
   location: 'Waterloo, Ontario',
@@ -112,7 +114,8 @@ export const profile = {
 // Left to right on the pod menu. Projects starts selected.
 export const sections: SectionDef[] = [
   { id: 'experience', label: 'Experience', note: 'QuadReal, Touchstone, UKUK', planet: 'knit' },
-  { id: 'projects', label: 'Projects', note: '8 hackathon wins!', planet: 'stickers' },
+  // 'Featured': the page shows a selection, not every hackathon win.
+  { id: 'projects', label: 'Projects', note: '8 hackathon wins!', planet: 'stickers', patch: 'Featured' },
   { id: 'about', label: 'About', note: 'Education and skills', planet: 'moon' },
   { id: 'contact', label: 'Contact me', note: 'Say hello!', planet: 'letter' },
 ];

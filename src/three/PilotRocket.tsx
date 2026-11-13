@@ -26,9 +26,11 @@ import {
   pilotOrbit,
   pilotParkedPose,
   pilotPoseOnOrbit,
+  reportPilotPose,
   subscribePilot,
   type PilotMode,
   type PilotOrbit,
+  type PilotPose,
   type PilotRect,
 } from '../lib/pilot';
 
@@ -157,6 +159,7 @@ function PilotScene({ reduced, layer }: { reduced: boolean; layer: RefObject<HTM
     last: makeShot(),
     shot: makeShot(),
     probe: makeShot(),
+    live: { x: 0, y: 0, length: 0, dir: [1, 0, 0], bank: 0, speed: 0, front: true } as PilotPose,
     depth: '' as Layer | '',
     nextPuff: 0,
     cursor: 0,
@@ -176,6 +179,7 @@ function PilotScene({ reduced, layer }: { reduced: boolean; layer: RefObject<HTM
     const t = s.t;
     const mesh = puffMesh.current;
     const target = st.target;
+    if (!target || st.held) reportPilotPose(null);
     if (!target) {
       g.visible = false;
       if (mesh) mesh.visible = false;
@@ -277,6 +281,18 @@ function PilotScene({ reduced, layer }: { reduced: boolean; layer: RefObject<HTM
       s.depth = shot.layer;
     }
     copyShot(s.last, shot);
+    if (!st.held) {
+      const live = s.live;
+      live.x = shot.x;
+      live.y = shot.y;
+      live.length = shot.length * shot.show;
+      live.dir[0] = shot.dir.x;
+      live.dir[1] = shot.dir.y;
+      live.dir[2] = shot.dir.z;
+      live.bank = shot.bank;
+      live.front = shot.layer === 'front';
+      reportPilotPose(shot.show > 0.5 ? live : null);
+    }
 
     const P = parts.current;
     updateFlame(P, t, flame, !reduced);

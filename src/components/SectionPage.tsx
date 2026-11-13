@@ -65,12 +65,22 @@ export function SectionPage({ id, instant = false }: { id: SectionId; instant?: 
   return (
     <div className={`section section--planet section--scene is-${phase}`}>
       <header className="section-header">
-        <a className="back-bubble" href="#/">
-          <span aria-hidden="true">← </span>Back to the pod
+        <a className="back-bubble" href="#/" data-sound="back">
+          <span aria-hidden="true">← </span>Back<span className="visually-hidden"> to the planets</span>
         </a>
-        <h1 ref={heading} tabIndex={-1} className="title-bubble">
-          {section.label}
-        </h1>
+        <div className="title-wrap">
+          <h1 ref={heading} tabIndex={-1} className="title-bubble">
+            {section.label}
+          </h1>
+          {section.patch ? (
+            <p className="title-patch">
+              <svg className="title-patch-star" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 2.8l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 16.8l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
+              </svg>
+              {section.patch}
+            </p>
+          ) : null}
+        </div>
       </header>
 
       <main id="main" className="section-main">

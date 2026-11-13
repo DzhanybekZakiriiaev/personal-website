@@ -79,3 +79,16 @@ body {
 .app-content[data-hidden] {
   visibility: hidden;
 }
+
+/* "Back to start": the pod fades out under the start screen while the rocket flies back */
+.app-content[data-leaving] {
+  opacity: 0;
+  transition: opacity 0.5s ease 0.1s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-content[data-leaving] {
+    transition-duration: 0.2s;
+    transition-delay: 0s;
+  }
+}

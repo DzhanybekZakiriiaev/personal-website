@@ -411,6 +411,60 @@ a {
   outline: none;
 }
 
+/* The title and the felt patch sewn onto its lower edge (e.g. 'Featured' on Projects) */
+.title-wrap {
+  grid-area: title;
+  justify-self: start;
+  position: relative;
+}
+
+.title-patch {
+  position: absolute;
+  right: 0.9em;
+  bottom: -0.95em;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  margin: 0;
+  padding: 0.38em 0.85em 0.42em 0.7em;
+  font-family: var(--font-display);
+  font-size: clamp(0.82rem, 0.7rem + 0.5vw, 1rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #4a2a12;
+  background-color: #ffc54a;
+  background-image: radial-gradient(rgb(120 70 10 / 0.12) 1px, transparent 1px);
+  background-size: 4px 4px;
+  border-radius: 7px;
+  /* merrowed edge of an embroidered patch, then a soft drop */
+  box-shadow:
+    0 0 0 3px #d9921c,
+    0 4px 0 3px rgb(0 0 0 / 0.28);
+  transform: rotate(5deg);
+  pointer-events: none;
+}
+
+/* running stitch that holds the patch on */
+.title-patch::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1.5px dashed rgb(110 60 10 / 0.6);
+  border-radius: 5px;
+}
+
+.title-patch-star {
+  width: 1.05em;
+  height: 1.05em;
+  fill: #d9541b;
+  stroke: #4a2a12;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
 /* In planet view the globe floats in the night scene, no cardboard box */
 .section--planet {
   max-width: 1280px;

@@ -1,0 +1,213 @@
+/* =========================================================
+   Stitched felt tags for small controls ("Back to start", the
+   sound stitch): the Start tag's look (cream felt, cut corners,
+   a running stitch inside), at button size.
+   ========================================================= */
+.stitch-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: 46px;
+  padding: 0.35em 1em 0.4em 0.95em;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #4a2a12;
+  background-color: #fff3d4;
+  background-image: radial-gradient(rgb(120 80 30 / 0.07) 1px, transparent 1px);
+  background-size: 5px 5px;
+  clip-path: polygon(10px 0, calc(100% - 5px) 3px, 100% 12px, calc(100% - 3px) calc(100% - 9px), calc(100% - 13px) 100%, 4px calc(100% - 3px), 0 calc(100% - 12px), 2px 8px);
+  filter: drop-shadow(0 3px 2px rgb(6 20 48 / 0.35));
+}
+
+/* the running stitch; darker on hover and focus */
+.stitch-tag::after {
+  content: '';
+  position: absolute;
+  inset: 5px 7px;
+  border: 2px dashed rgb(138 90 43 / 0.55);
+  border-radius: 5px;
+  pointer-events: none;
+}
+
+.stitch-button {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.stitch-button:hover .stitch-tag::after,
+.stitch-button:focus-visible .stitch-tag::after,
+.sound-stitch:hover::after,
+.sound-stitch:focus-within::after {
+  border-color: #8a5a2b;
+}
+
+.stitch-button:focus-visible,
+.sound-toggle:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
+}
+
+.stitch-icon {
+  width: 1.25em;
+  height: 1.25em;
+  flex: none;
+}
+
+/* ---------- Sound stitch: on/off + volume ---------- */
+.sound-stitch {
+  gap: 0.6em;
+  padding-right: 1.1em;
+}
+
+.sound-toggle {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  min-height: 34px;
+  padding: 0 0.15em;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sound-toggle[aria-pressed='false'] {
+  color: rgb(74 42 18 / 0.6);
+}
+
+/* The slider: a running stitch on felt, filled up to the volume, with a felt button knob. */
+.sound-volume {
+  --fill: 50%;
+  position: relative;
+  z-index: 1;
+  width: 96px;
+  height: 26px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.sound-volume:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.sound-volume::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  background:
+    linear-gradient(90deg, #d9541b var(--fill), transparent var(--fill)),
+    repeating-linear-gradient(90deg, rgb(138 90 43 / 0.6) 0 5px, transparent 5px 9px) center / 100% 2px no-repeat,
+    #f1dfb6;
+}
+
+.sound-volume::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(90deg, rgb(138 90 43 / 0.6) 0 5px, transparent 5px 9px) center / 100% 2px no-repeat,
+    #f1dfb6;
+}
+
+.sound-volume::-moz-range-progress {
+  height: 8px;
+  border-radius: 4px;
+  background: #d9541b;
+}
+
+.sound-volume::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff8a5c, #d9541b 70%);
+  border: 2px solid #fff3d4;
+  box-shadow: 0 1px 2px rgb(60 30 10 / 0.45);
+  -webkit-appearance: none;
+}
+
+.sound-volume::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff8a5c, #d9541b 70%);
+  border: 2px solid #fff3d4;
+  box-shadow: 0 1px 2px rgb(60 30 10 / 0.45);
+}
+
+/* ---------- The pod's left column: Back to start, then the sound stitch ---------- */
+.pod-side {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  /* above .pod-header (z-index 5), whose box spans the whole top edge and would take the clicks */
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  transition: opacity 0.3s ease 0.25s;
+}
+
+.pod.is-focused .pod-side {
+  opacity: 0;
+  transition-delay: 0s;
+  transition-duration: 0.2s;
+}
+
+.pod-side .stitch-button .stitch-tag {
+  transform: rotate(-2deg);
+}
+
+.pod-side .sound-stitch {
+  transform: rotate(1.5deg);
+}
+
+@media (max-width: 760px) {
+  .pod-side {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .stitch-tag {
+    min-height: 42px;
+    font-size: 0.98rem;
+  }
+
+  .sound-volume {
+    width: 76px;
+  }
+}
+
+/* The start screen: the sound stitch sits under the links. */
+.title-sound {
+  margin-top: 14px;
+  transform: rotate(-1.5deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stitch-button {
+    transition: transform 0.18s ease;
+  }
+
+  .stitch-button:hover {
+    transform: rotate(-2deg) translateY(-2px);
+  }
+}

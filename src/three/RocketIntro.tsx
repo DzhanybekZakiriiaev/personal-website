@@ -11,7 +11,7 @@ import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { CraftLights, QuietBoundary, canUseWebGL, makeCraftKit, type DollPose } from './StitchDoll';
 import { SackboyModel } from './Sackboy';
-import { getPilotState, pilotStartPose, pilotTakeOver, type PilotPose } from '../lib/pilot';
+import { getPilotLivePose, getPilotState, pilotHold, pilotStartPose, pilotTakeOver, type PilotPose } from '../lib/pilot';
 import knitUrl from '../assets/textures/knit.jpg';
 import feltUrl from '../assets/textures/felt.jpg';
 import cardboardUrl from '../assets/textures/cardboard.jpg';
@@ -30,6 +30,12 @@ export interface RocketIntroProps {
   /** Fly down onto the pilot's start pose (EXIT_TIME), take over, then call onFlightEnd. */
   exiting?: boolean;
   onFlightEnd?: () => void;
+  /**
+   * "Back to start": pick the pilot up where it is on screen, fly at the viewer and
+   * swing round into the hover spot (RETURN_TIME), then call onReturnEnd.
+   */
+  returning?: boolean;
+  onReturnEnd?: () => void;
   /** prefers-reduced-motion: no flight, bob or flicker; a still scene. */
   reduced: boolean;
   frame: RocketFrame;
@@ -56,6 +62,8 @@ const LEVER = 0.32;
 const KNOB_R = 0.075;
 /** Seconds from the exit starting to the rocket landing on the pilot's start pose. */
 export const EXIT_TIME = 1.4;
+/** Seconds for "Back to start": from the pilot's spot, past the viewer, into the hover spot. */
+export const RETURN_TIME = 1.9;
 /** Nose to flame tip in model units (the pilot scales the model by length / ROCKET_LEN). */
 export const ROCKET_LEN = 3.6;
 /** The flame size the pilot cruises with (the exit flight ends on it). */
@@ -715,6 +723,8 @@ interface FlightProps {
   launching: boolean;
   exiting: boolean;
   onFlightEnd?: () => void;
+  returning: boolean;
+  onReturnEnd?: () => void;
   reduced: boolean;
   rig: RefObject<RigInfo>;
 }
@@ -724,7 +734,30 @@ function fallbackPose(vw: number, vh: number): PilotPose {
   return { x: vw / 2, y: vh * 0.6, length: 90, dir: [1, -0.1, 0.3], bank: -0.32, speed: 200, front: true };
 }
 
-function Flight({ launching, exiting, onFlightEnd, reduced, rig }: FlightProps) {
+/** The hover's position and orientation at time t (the bob in the idle branch below). */
+function hoverPose(t: number, moving: boolean, pos: THREE.Vector3, quat: THREE.Quaternion) {
+  pos.set(ROCKET_BASE.x, ROCKET_BASE.y + (moving ? 0.08 * Math.sin(t * 1.6) : 0), 0);
+  const pitch = PITCH + (moving ? 0.04 * Math.sin(t * 1.3 + 1) : 0);
+  const roll = moving ? 0.12 * Math.sin(t * 1.1) : 0;
+  quat.setFromEuler(E_HOVER.set(roll, 0, pitch, 'ZYX'));
+}
+
+const E_HOVER = new THREE.Euler();
+
+/**
+ * The world point where a rocket drawn at screen spot (x, y) with on-screen length
+ * `length` px sits, for this camera (the depth where the model looks that big).
+ */
+function worldForScreen(out: THREE.Vector3, camera: THREE.Camera, x: number, y: number, length: number, vw: number, vh: number) {
+  const depth = clamp((ROCKET_LEN * vh) / (2 * TAN_HALF * Math.max(8, length)), 3, 200);
+  V_RAY.set((x / vw) * 2 - 1, 1 - (y / vh) * 2, 0.5).unproject(camera).sub(camera.position).normalize();
+  V_AHEAD.set(0, 0, -1).applyQuaternion(camera.quaternion);
+  const along = depth / Math.max(0.2, V_RAY.dot(V_AHEAD));
+  out.copy(camera.position).addScaledVector(V_RAY, along);
+  return depth;
+}
+
+function Flight({ launching, exiting, onFlightEnd, returning, onReturnEnd, reduced, rig }: FlightProps) {
   const kit = useRocketKit();
   const camera = useThree((st) => st.camera);
   const size = useThree((st) => st.size);
@@ -733,14 +766,14 @@ function Flight({ launching, exiting, onFlightEnd, reduced, rig }: FlightProps) 
   const parts = useRef<RocketParts>(makeRocketParts());
   const puffMesh = useRef<THREE.InstancedMesh>(null);
   const drifterObjs = useRef<(THREE.Mesh | null)[]>([]);
-  const live = useRef({ launching, exiting, onFlightEnd });
+  const live = useRef({ launching, exiting, onFlightEnd, returning, onReturnEnd });
   useEffect(() => {
-    live.current = { launching, exiting, onFlightEnd };
-  }, [launching, exiting, onFlightEnd]);
+    live.current = { launching, exiting, onFlightEnd, returning, onReturnEnd };
+  }, [launching, exiting, onFlightEnd, returning, onReturnEnd]);
 
-  // Partway through the exit the doll settles into 'cruise', the pilot's resting pose,
-  // so the handover to the pilot layer doesn't pop.
-  const [cruising, setCruising] = useState(false);
+  // Partway through the exit the pilot settles into 'cruise', his resting pose, so the
+  // handover to the pilot layer doesn't pop; coming back, he cruises until he lands.
+  const [cruising, setCruising] = useState(returning);
   const drifters = useMemo(makeDrifters, []);
   const sim = useRef({
     t: 0,
@@ -761,6 +794,10 @@ function Flight({ launching, exiting, onFlightEnd, reduced, rig }: FlightProps) 
     qEnd: new THREE.Quaternion(),
     dirEnd: new THREE.Vector3(1, 0, 0),
     ended: false,
+    // return flight: two curves, pilot spot -> past the viewer -> hover spot
+    returnAt: -1,
+    returned: false,
+    r: Array.from({ length: 7 }, () => new THREE.Vector3()),
   });
 
   useFrame((_, delta) => {
@@ -804,8 +841,75 @@ function Flight({ launching, exiting, onFlightEnd, reduced, rig }: FlightProps) 
       orientRocket(s.qEnd, s.dirEnd, pose.bank);
     }
 
+    // Return setup ("Back to start"): start from the pilot's spot on screen this very
+    // frame (then hide the pilot), come at the viewer, swing past and settle into the
+    // hover, landing on exactly the hover's pose for the moment it ends.
+    if (props.returning && s.returnAt < 0 && !s.returned && rig.current.ready && s.exitAt < 0) {
+      s.returnAt = t;
+      const vw = Math.max(1, size.width);
+      const vh = Math.max(1, size.height);
+      camera.updateMatrixWorld();
+      const pose = getPilotLivePose() ?? fallbackPose(vw, vh);
+      pilotHold();
+      const [r0, r1, r2, r3, r4, r5, r6] = s.r;
+      const depth = worldForScreen(r0, camera, pose.x, pose.y, pose.length, vw, vh);
+      V_DIR.set(pose.dir[0], pose.dir[1], pose.dir[2]).normalize();
+      orientRocket(s.q0, V_DIR, pose.bank);
+      R.position.copy(r0);
+      R.quaternion.copy(s.q0);
+      r1.copy(r0).addScaledVector(V_DIR, clamp(depth * 0.18, 1.5, 12));
+      // Close in front of the camera, a little left and low: the rocket fills the view.
+      const F = V_AHEAD.set(0, 0, -1).applyQuaternion(camera.quaternion);
+      const Rt = V_RAY.set(1, 0, 0).applyQuaternion(camera.quaternion);
+      const Up = V_NOZZLE.set(0, 1, 0).applyQuaternion(camera.quaternion);
+      r3.copy(camera.position).addScaledVector(F, 4.6).addScaledVector(Rt, -0.7).addScaledVector(Up, -0.35);
+      // Heading there: at the viewer, veering right and up past them.
+      V_POS.copy(F).multiplyScalar(-1).addScaledVector(Rt, 0.9).addScaledVector(Up, 0.35).normalize();
+      r2.copy(r3).addScaledVector(V_POS, -6);
+      r4.copy(r3).addScaledVector(V_POS, 2);
+      hoverPose(t + RETURN_TIME, moving, r6, s.qEnd);
+      V_DIR.set(1, 0, 0).applyQuaternion(s.qEnd);
+      r5.copy(r6).addScaledVector(V_DIR, -3);
+    }
+
     let flame = 1;
-    if (s.exitAt >= 0) {
+    const returnT = s.returnAt >= 0 && !s.returned ? t - s.returnAt : -1;
+    if (returnT >= 0 && s.exitAt < 0) {
+      const f = clamp(returnT / RETURN_TIME, 0, 1);
+      const split = 0.48;
+      const [r0, r1, r2, r3, r4, r5, r6] = s.r;
+      const at = (k: number, out: THREE.Vector3) => {
+        if (k < split) {
+          const a = k / split;
+          return bezier(out, r0, r1, r2, r3, 0.3 * a + 0.7 * a * a); // speeding up towards the viewer
+        }
+        const b = (k - split) / (1 - split);
+        return bezier(out, r3, r4, r5, r6, 0.3 * b + 0.7 * (1 - (1 - b) * (1 - b))); // easing into the hover
+      };
+      at(f, V_POS);
+      R.position.copy(V_POS);
+      if (f < 0.995) {
+        at(Math.min(1, f + 0.004), V_AHEAD);
+        V_DIR.subVectors(V_AHEAD, V_POS);
+        if (V_DIR.lengthSq() < 1e-10) V_DIR.set(1, 0, 0).applyQuaternion(s.qEnd);
+      } else {
+        V_DIR.set(1, 0, 0).applyQuaternion(s.qEnd);
+      }
+      // Nose along the path, a lean through the turn and one barrel roll after passing the viewer.
+      const bank = 0.5 * Math.sin(Math.PI * f) + TAU * easeInOut((f - 0.5) / 0.3);
+      orientRocket(Q_PATH, V_DIR, bank);
+      Q_MID.slerpQuaternions(s.q0, Q_PATH, smooth(returnT / 0.22));
+      R.quaternion.slerpQuaternions(Q_MID, s.qEnd, smooth((f - 0.75) / 0.25));
+      flame = lerp(2.1, 1, smooth((f - 0.7) / 0.3));
+      if (f >= 1) {
+        s.returned = true;
+        setCruising(false);
+        props.onReturnEnd?.();
+      }
+    } else if (props.returning && s.returnAt < 0) {
+      // Waiting a frame for the camera: hold the pilot's spot hidden until the flight starts.
+      R.visible = false;
+    } else if (s.exitAt >= 0) {
       const e = t - s.exitAt;
       const f = clamp(e / EXIT_TIME, 0, 1);
       const u = 0.35 * f + 0.65 * smooth(f);
@@ -834,7 +938,7 @@ function Flight({ launching, exiting, onFlightEnd, reduced, rig }: FlightProps) 
         props.onFlightEnd?.();
       }
     } else {
-      // Gentle bob and bank; on launch the flame flares and the hull rumbles.
+      // Gentle bob and bank (hoverPose); on launch the flame flares and the hull rumbles.
       let px = ROCKET_BASE.x;
       let py = ROCKET_BASE.y + (moving ? 0.08 * Math.sin(t * 1.6) : 0);
       const pitch = PITCH + (moving ? 0.04 * Math.sin(t * 1.3 + 1) : 0);
@@ -848,7 +952,9 @@ function Flight({ launching, exiting, onFlightEnd, reduced, rig }: FlightProps) 
       R.position.set(px, py, 0);
       R.rotation.set(roll, 0, pitch, 'ZYX');
     }
-    const exitT = s.exitAt >= 0 ? t - s.exitAt : -1;
+    if (!(props.returning && s.returnAt < 0)) R.visible = true;
+    // Either flight leaves the dotted trail of the exit.
+    const exitT = s.exitAt >= 0 ? t - s.exitAt : returnT;
 
     const P = parts.current;
     updateFlame(P, t, flame, moving);
@@ -906,7 +1012,15 @@ function Flight({ launching, exiting, onFlightEnd, reduced, rig }: FlightProps) 
     const info = rig.current;
     if (info.ready) {
       const r = s.random;
-      const away = exitT >= 0 ? 1 - smooth(exitT / 0.3) : 1;
+      // Leaving: they shrink away. Coming back: they grow in as the rocket arrives.
+      const away =
+        s.exitAt >= 0
+          ? 1 - smooth((t - s.exitAt) / 0.3)
+          : props.returning || s.returnAt >= 0
+            ? s.returnAt >= 0
+              ? smooth((t - s.returnAt) / 0.8)
+              : 0
+            : 1;
       drifters.forEach((d, i) => {
         const obj = drifterObjs.current[i];
         if (!obj) return;
@@ -969,7 +1083,7 @@ const GL_OPTIONS = { antialias: true, alpha: true, powerPreference: 'default' as
 const CAMERA = { fov: FOV, near: 0.1, far: 60, position: [0, 0, 12] as [number, number, number] };
 const FILL_STYLE = { position: 'absolute' as const, inset: 0, pointerEvents: 'none' as const };
 
-export function RocketIntro({ launching, exiting = false, onFlightEnd, reduced, frame }: RocketIntroProps) {
+export function RocketIntro({ launching, exiting = false, onFlightEnd, returning = false, onReturnEnd, reduced, frame }: RocketIntroProps) {
   const [webgl] = useState(canUseWebGL);
   const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.hidden);
   const rig = useRef<RigInfo>({ ready: false, dist: 12, tx: 0, ty: 0, aspect: 1 });
@@ -997,7 +1111,15 @@ export function RocketIntro({ launching, exiting = false, onFlightEnd, reduced, 
           <CameraRig frame={frame} rig={rig} />
           <CraftLights />
           <Suspense fallback={null}>
-            <Flight launching={launching} exiting={exiting} onFlightEnd={onFlightEnd} reduced={reduced} rig={rig} />
+            <Flight
+              launching={launching}
+              exiting={exiting}
+              onFlightEnd={onFlightEnd}
+              returning={returning}
+              onReturnEnd={onReturnEnd}
+              reduced={reduced}
+              rig={rig}
+            />
           </Suspense>
         </Canvas>
       </QuietBoundary>

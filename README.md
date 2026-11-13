@@ -1,4 +1,4 @@
-# Johnny Zakiriiaev
+# Dzhanybek (Johnny) Zakiriiaev
 
 My personal website. The home screen is a handmade "pod" with felt planets hanging on strings: pick one to open that section.
 
