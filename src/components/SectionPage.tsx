@@ -4,6 +4,7 @@ import { profile, sections, type SectionId } from '../content';
 import { go } from '../lib/route';
 import { ButtonHints } from './ButtonHints';
 import { FOCUS_IN_MS } from './PlanetCarousel';
+import { SoundStitch } from './SoundStitch';
 import { PlanetLevels } from './levels/PlanetLevels';
 import { levelsFor } from '../pages/levels';
 
@@ -21,7 +22,7 @@ const FADE_OUT_MS = 220;
 // A section: the page that goes with the focused planet of the pod scene (the planet
 // itself is the pod's, see PlanetCarousel). Header, the level tabs, the info card and
 // hints; PlanetLevels puts the level badges on the focused planet.
-export function SectionPage({ id, instant = false }: { id: SectionId; instant?: boolean }) {
+export function SectionPage({ id, instant = false, active = true }: { id: SectionId; instant?: boolean; active?: boolean }) {
   const section = sections.find((s) => s.id === id) ?? sections[0];
   const heading = useRef<HTMLHeadingElement>(null);
   const items = useMemo(() => levelsFor(id), [id]);
@@ -33,10 +34,12 @@ export function SectionPage({ id, instant = false }: { id: SectionId; instant?: 
     window.scrollTo(0, 0);
   }, []);
 
+  // Announce the page by focusing its heading. Opened from its address, the site is
+  // still inert under the loading screen, so this waits until the site is shown.
   useEffect(() => {
     document.title = `${section.label} · ${profile.name}`;
-    heading.current?.focus({ preventScroll: true });
-  }, [section]);
+    if (active) heading.current?.focus({ preventScroll: true });
+  }, [section, active]);
 
   useEffect(() => {
     if (phase !== 'entering') return undefined;
@@ -65,9 +68,13 @@ export function SectionPage({ id, instant = false }: { id: SectionId; instant?: 
   return (
     <div className={`section section--planet section--scene is-${phase}`}>
       <header className="section-header">
-        <a className="back-bubble" href="#/" data-sound="back">
-          <span aria-hidden="true">← </span>Back<span className="visually-hidden"> to the planets</span>
-        </a>
+        <div className="section-top">
+          <a className="back-bubble" href="#/" data-sound="back">
+            <span aria-hidden="true">← </span>Back<span className="visually-hidden"> to the planets</span>
+          </a>
+          {/* Music and button sounds can be stopped from every screen. */}
+          <SoundStitch />
+        </div>
         <div className="title-wrap">
           <h1 ref={heading} tabIndex={-1} className="title-bubble">
             {section.label}

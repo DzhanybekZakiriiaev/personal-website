@@ -157,7 +157,7 @@ export default function App() {
           />
         </div>
         <AnimatePresence mode="wait">
-          {route !== 'pod' ? <SectionPage key={route} id={route} instant={deepLink.current} /> : null}
+          {route !== 'pod' ? <SectionPage key={route} id={route} instant={deepLink.current} active={siteShown} /> : null}
         </AnimatePresence>
       </div>
       {siteShown || pilotMounted ? <Pilot /> : null}

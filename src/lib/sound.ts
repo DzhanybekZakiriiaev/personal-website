@@ -1,9 +1,9 @@
 import { useSyncExternalStore } from 'react';
 
 /*
- * Background music. The theme (the first audio file in src/assets/audio/) loops from
- * page open; browsers that block sound until the visitor interacts start it on the
- * first tap, click or key press instead. It pauses while the tab is hidden. On/off
+ * Background music. The theme (the first audio file in src/assets/audio/) loops once
+ * the loading screen is done; browsers that block sound until the visitor interacts
+ * start it on the first click or tap instead. It pauses while the tab is hidden. On/off
  * and volume are shared by every sound stitch (SoundStitch.tsx) and remembered for
  * the next visit, and the button sounds (src/lib/uiSounds.ts) follow them too. With no
  * audio file in that folder there is simply no music.
@@ -23,8 +23,12 @@ export interface SoundState {
 
 const STORAGE_KEY = 'jz-sound';
 const DEFAULT_VOLUME = 0.45;
-/** Interactions that let a page start sound. */
-const GESTURES = ['pointerdown', 'keydown', 'touchend'] as const;
+/**
+ * Interactions that start blocked music: a click or tap only. Not key presses, so a
+ * screen-reader user's first Tab never starts music over their reader (they can
+ * still turn it on with the Sound button, which is a user gesture of its own).
+ */
+const GESTURES = ['pointerdown', 'touchend'] as const;
 
 function loadPrefs(): Pick<SoundState, 'on' | 'volume'> {
   try {

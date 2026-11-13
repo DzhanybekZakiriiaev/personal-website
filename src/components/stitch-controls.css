@@ -48,10 +48,19 @@
   border-color: #8a5a2b;
 }
 
-.stitch-button:focus-visible,
-.sound-toggle:focus-visible {
+/* The Back to start button sits on denim: the site's yellow ring shows well there. */
+.stitch-button:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 4px;
+}
+
+/* Controls inside the cream tag get a dark ring (11:1 on the felt), inset so the
+   tag's cut corners never clip it. */
+.sound-toggle:focus-visible,
+.sound-volume:focus-visible {
+  outline: 3px solid #4a2a12;
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 .stitch-icon {
@@ -82,8 +91,9 @@
   cursor: pointer;
 }
 
+/* Off: a lighter brown that still reads at 7:1 on the cream felt */
 .sound-toggle[aria-pressed='false'] {
-  color: rgb(74 42 18 / 0.6);
+  color: #6e4b2c;
 }
 
 /* The slider: a running stitch on felt, filled up to the volume, with a felt button knob. */
@@ -98,12 +108,6 @@
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-}
-
-.sound-volume:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-  border-radius: 6px;
 }
 
 .sound-volume::-webkit-slider-runnable-track {
@@ -196,10 +200,28 @@
   }
 }
 
-/* The start screen: the sound stitch sits under the links. */
+/* The start screen: the sound stitch is first in the DOM (tab order) but shows under the links. */
 .title-sound {
-  margin-top: 14px;
+  order: 1;
   transform: rotate(-1.5deg);
+}
+
+/* Section pages: Back, then the sound stitch, on one row above the title. */
+.section-top {
+  grid-area: back;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+.section-top .sound-stitch {
+  transform: rotate(1.5deg);
+}
+
+/* The scene section lets clicks through to the planet except on its own controls. */
+.section.section--scene .sound-stitch {
+  pointer-events: auto;
 }
 
 @media (prefers-reduced-motion: no-preference) {

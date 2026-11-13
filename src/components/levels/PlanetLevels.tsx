@@ -330,7 +330,6 @@ export function PlanetLevels({ planet, items, label, hideBubble = false, interac
   const tablistRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const openRef = useRef<HTMLButtonElement>(null);
-  const soonRef = useRef<HTMLDivElement>(null);
   const visitRef = useRef<HTMLButtonElement>(null);
   const pendingFocus = useRef<'soon' | 'visit' | null>(null);
   const baseId = `levels-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
@@ -512,12 +511,13 @@ export function PlanetLevels({ planet, items, label, hideBubble = false, interac
     setSoonId(null);
   };
 
-  // Keep focus inside the portal when its content swaps.
+  // Keep focus inside the portal when its content swaps. Opening "Working on it", the
+  // screen focuses its own heading; coming back, focus returns to the Visit button.
   useEffect(() => {
     const target = pendingFocus.current;
     if (!target) return;
     pendingFocus.current = null;
-    (target === 'soon' ? soonRef.current : visitRef.current)?.focus();
+    if (target === 'visit') visitRef.current?.focus();
   }, [showSoon]);
 
   // ← → choose and Enter opens from anywhere on the page that has no use for those keys
@@ -758,7 +758,7 @@ export function PlanetLevels({ planet, items, label, hideBubble = false, interac
         {/* Rendered into document.body, so it carries the .levels scope itself. */}
         <div className="levels levels-portal">
           {showSoon ? (
-            <div ref={soonRef} className="levels-soon" tabIndex={-1}>
+            <div className="levels-soon">
               <WorkingOnIt title={item.title} onBack={backToDetails} />
             </div>
           ) : (

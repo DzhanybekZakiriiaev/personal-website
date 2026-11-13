@@ -74,9 +74,10 @@ export function PodMenu({ selected, onSelect, restoreFocus, active = true, focus
         </ul>
       </header>
 
-      <main id={focused ? undefined : 'main'} className="pod-main">
+      {/* The main landmark only while no section is open (the section page has its own). */}
+      <div role={focused ? undefined : 'main'} id={focused ? undefined : 'main'} className="pod-main">
         <PlanetCarousel selected={selected} onSelect={onSelect} restoreFocus={restoreFocus} active={active} focus={focus} />
-      </main>
+      </div>
 
       <div className="pod-floor" aria-hidden="true" />
 

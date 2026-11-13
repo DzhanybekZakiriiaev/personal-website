@@ -590,11 +590,15 @@ export function PlanetCarousel({ selected, onSelect, restoreFocus, active, focus
     if (!focusGlobe?.pocketOpen) aimPilot();
   }, [focusGlobe?.pocketOpen, aimPilot]);
 
-  // Each time the pod opens: focus goes back to the planet we came from.
+  // Each time the pod opens: focus goes back to the planet we came from, or (coming
+  // from the start screen, whose focus was left behind) to the centre planet.
   // While a section is open: drop any half-done swipe.
   useEffect(() => {
     if (active) {
-      if (restoreFocus) links.current[selected]?.focus({ preventScroll: true });
+      const current = document.activeElement;
+      if (restoreFocus || !current || current === document.body || current.closest('.title')) {
+        links.current[selected]?.focus({ preventScroll: true });
+      }
       return;
     }
     drag.current = null;
@@ -645,9 +649,11 @@ export function PlanetCarousel({ selected, onSelect, restoreFocus, active, focus
   };
 
   /* ---------- pointer ---------- */
-  // A side planet turns to the centre on click, so its press must not focus (and turn) it early.
+  // A side planet turns to the centre on click, so its press must not focus (and turn) it
+  // early. With a section open, the planets' nav is hidden from screen readers, so a press
+  // (e.g. on a level badge) must not move focus into it either.
   const onPlanetMouseDown = (event: MouseEvent<HTMLAnchorElement>, index: number) => {
-    if (event.button === 0 && index !== selected) event.preventDefault();
+    if (event.button === 0 && (index !== selected || focus !== null)) event.preventDefault();
   };
 
   // Side planet: turn it to the centre. Centre planet: open its section (the link does it).

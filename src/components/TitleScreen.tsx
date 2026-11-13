@@ -222,6 +222,8 @@ export function TitleScreen({ onStart, returning = false }: TitleScreenProps) {
       ref={rootRef}
       className={className}
       aria-labelledby={headingId}
+      // Leaving (flight or fade): out of reach for keyboards and screen readers.
+      inert={stage === 'flight' || stage === 'fading'}
       // Coming back, the rocket is already on screen: no fade for the scene (the sign
       // and card make their usual entrance).
       initial={{ opacity: returning && !reduced ? 1 : 0 }}
@@ -277,6 +279,9 @@ export function TitleScreen({ onStart, returning = false }: TitleScreenProps) {
         </div>
 
         <div className="title-summary">
+          {/* First in the tab order after Start (shown last, under the links): the music
+              can be stopped straight away. */}
+          <SoundStitch className="title-sound" />
           <div className="title-card">
             <p className="title-pitch">{profile.pitch}</p>
           </div>
@@ -289,7 +294,6 @@ export function TitleScreen({ onStart, returning = false }: TitleScreenProps) {
               ))}
             </ul>
           ) : null}
-          <SoundStitch className="title-sound" />
         </div>
       </div>
     </motion.section>
