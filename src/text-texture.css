@@ -4,8 +4,8 @@
    stays plain for readability. Browsers without background-clip: text keep the
    normal solid colours. */
 @supports ((background-clip: text) or (-webkit-background-clip: text)) {
-  /* Dark burlap: start screen name sign, carousel tags, loading title */
-  .title-name,
+  /* Dark burlap: carousel tags, loading title (the start screen name is plain
+     brown, like the line under it: title.css) */
   .orbit-tag-text,
   .loading-title {
     color: transparent;
@@ -40,7 +40,6 @@
   /* 3D felt letters, like the puffy stars on the start screen: a light top edge,
      a few pixels of extruded depth and a soft shadow. Stacked drop-shadows (not
      text-shadow) so the burlap fill isn't covered. */
-  .title-name,
   .loading-title {
     filter: drop-shadow(0 -1px 0 rgb(255 236 200 / 0.55)) drop-shadow(0 1px 0 #6e4a22) drop-shadow(0 1px 0 #5e3d1a)
       drop-shadow(0 1px 0 #4f3214) drop-shadow(0 1px 0 #40280f) drop-shadow(0 4px 4px rgb(0 0 0 / 0.3));

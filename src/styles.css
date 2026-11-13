@@ -296,6 +296,17 @@ a {
 }
 
 /* Controller-style hint bar */
+/* running stitch inside the paper pill */
+.hints::after,
+.back-bubble::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1.5px dashed rgb(27 27 36 / 0.32);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
 .hints {
   position: fixed;
   left: 50%;
@@ -387,6 +398,7 @@ a {
 }
 
 .back-bubble {
+  position: relative;
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -413,7 +425,18 @@ a {
   outline-offset: 5px;
 }
 
+/* running stitch inside the pink felt */
+.title-bubble::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 2px dashed rgb(255 255 255 / 0.55);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
 .title-bubble {
+  position: relative;
   margin: 0;
   padding: 0.08em 0.75em 0.14em;
   font-size: clamp(1.7rem, 3.2vw, 2.5rem);

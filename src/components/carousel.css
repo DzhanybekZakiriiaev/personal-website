@@ -220,6 +220,16 @@
   box-shadow: 0 8px 18px rgb(0 0 0 / 0.35);
 }
 
+/* running stitch inside the note */
+.orbit-note::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1.5px dashed rgb(255 210 63 / 0.5);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
 /* ---------- Gentle idle bob; planets waiting in the background drift ---------- */
 @media (prefers-reduced-motion: no-preference) {
   .orbit-bob {
