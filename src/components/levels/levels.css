@@ -756,6 +756,76 @@
 }
 
 /* =========================================================
+   Very short laptop windows (browser bars, an info bar or
+   DevTools eating the height): smaller card, tabs and globe,
+   so the page still fits without a scrollbar
+   ========================================================= */
+@media (min-width: 760px) and (max-height: 640px) {
+  .levels .levels-layout {
+    --globe: clamp(220px, min(100vh - var(--levels-reserve, 272px), 44vw), 560px);
+    padding-top: 34px;
+  }
+
+  /* Little headroom above the globe: the bubble shows just the title (the card beside
+     it repeats the subtitle), so it stays on screen. */
+  .levels .levels-bubble-meta {
+    display: none;
+  }
+
+  .levels .levels-bubble {
+    padding: 6px 12px 7px;
+  }
+
+  .levels .levels-tabs {
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .levels .levels-tab {
+    width: 42px;
+    height: 42px;
+  }
+
+  .levels .levels-card {
+    --polaroid: 80px;
+    padding: 10px 24px 12px;
+  }
+
+  .levels .levels-card-label {
+    margin-bottom: 8px;
+    padding-block: 5px 6px;
+    font-size: 0.98rem;
+  }
+
+  .levels .levels-polaroid {
+    padding: 7px 7px 16px;
+  }
+
+  .levels .levels-card-title {
+    font-size: clamp(1.15rem, 0.95rem + 0.7vw, 1.4rem);
+  }
+
+  .levels .levels-card-meta {
+    font-size: 0.92rem;
+  }
+
+  .levels .levels-card-summary {
+    margin-top: 8px;
+    font-size: 0.95rem;
+    line-height: 1.42;
+  }
+
+  .levels .levels-card-foot {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
+  .levels .levels-open {
+    min-height: 42px;
+  }
+}
+
+/* =========================================================
    One scene (SectionPage.tsx, PlanetCarousel.tsx): this page sits
    over the pod scene, whose focused planet is drawn exactly under
    the see-through globe box. The page lets the pointer through to

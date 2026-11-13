@@ -363,6 +363,15 @@ a {
   padding: 20px 16px 120px;
 }
 
+/* Desktop: room for the fixed hint bar (14px from the bottom, ~50px tall) and no more,
+   so a section page fits the window without a scrollbar. Phones keep the long padding:
+   their page scrolls under the bar (levels.css). */
+@media (min-width: 760px) {
+  .section {
+    padding-bottom: 72px;
+  }
+}
+
 /* One compact row: Back, the title pill (with its patch), the sound button at the end.
    Kept short so the globe, tabs and card fit above the hint bar (levels.css budget). */
 .section-header {
